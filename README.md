@@ -134,7 +134,7 @@ SESSION_ID=KERM-MD-V1~H4sIAAAAA...  # long session (full zlib string)
 ## Owner
 
 <a href="https://github.com/kermtech6">
-  <img src="https://github.com/Mayelprince.png" width="150" height="150" alt="Mayel Prince" style="border-radius:50%"/>
+  <img src="https://i.ibb.co/B5Fdgf6H/DZs4u-R8-Mc-A.jpg" width="150" height="150" alt="Mayel Prince" style="border-radius:50%"/>
 </a>
 
 [`ℹ️ Visit Bot Repo`](https://github.com/kermtech6/KERM-MD-V1)
