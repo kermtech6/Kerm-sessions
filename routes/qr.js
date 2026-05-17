@@ -235,7 +235,7 @@ router.get('/', async (req, res) => {
                     name: 'cta_copy', 
                     buttonParamsJson: JSON.stringify({ 
                         display_text: 'Copy Session', 
-                        copy_code: 'KERM-MD-V1' + b64data 
+                        copy_code: 'KERM-MD-V1~' + b64data 
                     }) 
                 },
                 {
