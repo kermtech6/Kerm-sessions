@@ -17,7 +17,7 @@ const {
     delay,
     fetchLatestBaileysVersion
 } = require("@whiskeysockets/baileys");
-const princeChannelId = '120363404978384902@newsletter';
+const princeChannelId = '120363424806421640@newsletter';
 
 const sessionDir = path.join(__dirname, "session");
 
@@ -60,7 +60,7 @@ router.get('/', async (req, res) => {
                             <!DOCTYPE html>
                             <html>
                             <head>
-                                <title>PRINCE-MDX | QR CODE</title>
+                                <title>KERM-MD-V1 | QR CODE</title>
                                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
                                 <style>
                                     body {
@@ -164,7 +164,7 @@ router.get('/', async (req, res) => {
                             </head>
                             <body>
                                 <div class="container">
-                                    <h1>PRINCE-MDX QR CODE</h1>
+                                    <h1>KERM-MD-V1 QR CODE</h1>
                                     <div class="qr-container">
                                         <div class="qr-code pulse">
                                             <img src="${qrImage}" alt="QR Code"/>
@@ -235,7 +235,7 @@ router.get('/', async (req, res) => {
                     name: 'cta_copy', 
                     buttonParamsJson: JSON.stringify({ 
                         display_text: 'Copy Session', 
-                        copy_code: 'KERM-MD-V1~' + b64data 
+                        copy_code: 'KERM-MD-V1' + b64data 
                     }) 
                 },
                 {
