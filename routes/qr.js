@@ -1,4 +1,4 @@
-const {
+const { 
     princeId,
     removeFile
 } = require('../mayel');
@@ -8,7 +8,7 @@ const express = require('express');
 const zlib = require('zlib');
 const path = require('path');
 const fs = require('fs');
-const pino = require('pino');
+const pino = require("pino");
 
 const { sendButtons } = require('gifted-btns');
 
@@ -33,8 +33,11 @@ router.get('/', async (req, res) => {
     let sessionCleanedUp = false;
 
     async function cleanUpSession() {
+
         if (!sessionCleanedUp) {
+
             await removeFile(path.join(sessionDir, id));
+
             sessionCleanedUp = true;
         }
     }
@@ -43,8 +46,9 @@ router.get('/', async (req, res) => {
 
         const { version } = await fetchLatestBaileysVersion();
 
-        const { state, saveCreds } =
-            await useMultiFileAuthState(path.join(sessionDir, id));
+        const { state, saveCreds } = await useMultiFileAuthState(
+            path.join(sessionDir, id)
+        );
 
         try {
 
@@ -62,13 +66,7 @@ router.get('/', async (req, res) => {
 
             Prince.ev.on("connection.update", async (s) => {
 
-                const {
-                    connection,
-                    lastDisconnect,
-                    qr
-                } = s;
-
-                /* ================= QR PAGE ================= */
+                const { connection, lastDisconnect, qr } = s;
 
                 if (qr && !responseSent) {
 
@@ -79,36 +77,32 @@ router.get('/', async (req, res) => {
                         res.send(`
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 
 <meta charset="UTF-8">
 
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>KERM-MD-V1 | QR CODE</title>
+<title>KERM-MD-V1 | QR CONNECT</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
+
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 
 <style>
 
 :root{
-    --primary:#00e5ff;
-    --secondary:#7b61ff;
-    --accent:#00ffb7;
-    --dark:#050816;
-    --dark2:#0b1020;
-    --card:rgba(12,18,35,.72);
-    --border:rgba(255,255,255,.08);
+    --primary:#00d4ff;
+    --secondary:#7a5cff;
+    --bg:#070b17;
+    --card:#10182c;
     --text:#ffffff;
-    --muted:#94a3b8;
-    --transition:all .4s cubic-bezier(.4,0,.2,1);
+    --muted:#98a2c5;
 }
 
 *{
@@ -117,566 +111,457 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     box-sizing:border-box;
 }
 
+html,
 body{
-    min-height:100vh;
-    overflow:hidden;
-    font-family:'Inter',sans-serif;
+    width:100%;
+    min-height:100%;
+    overflow-x:hidden;
+    overflow-y:auto;
+    scroll-behavior:smooth;
+}
+
+body{
+    font-family:'Rajdhani',sans-serif;
     background:
-    radial-gradient(circle at top left,
-    rgba(0,229,255,.16),
-    transparent 35%),
-
-    radial-gradient(circle at bottom right,
-    rgba(123,97,255,.18),
-    transparent 35%),
-
-    linear-gradient(145deg,var(--dark),var(--dark2));
-
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    padding:20px;
+    radial-gradient(circle at top left, rgba(0,212,255,.15), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(122,92,255,.18), transparent 30%),
+    var(--bg);
     color:var(--text);
+    padding:20px 15px 40px;
     position:relative;
 }
 
-/* GRID */
+/* Background */
 
-.grid{
+.bg-grid{
     position:fixed;
     inset:0;
     background-image:
     linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
-    background-size:45px 45px;
+    background-size:40px 40px;
     z-index:-2;
 }
 
-/* GLOW */
-
 .glow{
     position:fixed;
-    width:500px;
-    height:500px;
+    width:350px;
+    height:350px;
     border-radius:50%;
-    filter:blur(120px);
-    opacity:.4;
-    animation:pulse 8s infinite alternate ease-in-out;
+    background:rgba(0,212,255,.12);
+    filter:blur(100px);
+    top:-100px;
+    left:-100px;
     z-index:-1;
 }
 
-.glow.one{
-    top:-120px;
-    left:-120px;
-    background:#00e5ff;
-}
-
-.glow.two{
-    bottom:-120px;
-    right:-120px;
-    background:#7b61ff;
-    animation-delay:2s;
-}
-
-@keyframes pulse{
-    from{
-        transform:scale(1);
-    }
-    to{
-        transform:scale(1.2);
-    }
-}
-
-/* PARTICLES */
-
-.particles{
-    position:fixed;
-    inset:0;
-    overflow:hidden;
-    z-index:-1;
-}
-
-.particle{
-    position:absolute;
-    width:3px;
-    height:3px;
-    border-radius:50%;
-    background:rgba(255,255,255,.8);
-    animation:float linear infinite;
-}
-
-@keyframes float{
-    0%{
-        transform:translateY(100vh);
-        opacity:0;
-    }
-    10%{
-        opacity:1;
-    }
-    90%{
-        opacity:1;
-    }
-    100%{
-        transform:translateY(-100vh);
-        opacity:0;
-    }
-}
-
-/* CARD */
+/* Container */
 
 .container{
     width:100%;
-    max-width:520px;
-    padding:40px 30px;
-    border-radius:30px;
-    background:var(--card);
-    backdrop-filter:blur(25px);
-    border:1px solid var(--border);
-    box-shadow:
-    0 20px 60px rgba(0,0,0,.5),
-    0 0 40px rgba(0,229,255,.12);
-    position:relative;
-    overflow:hidden;
-    animation:entry .8s ease;
+    max-width:480px;
+    margin:0 auto;
+    background:rgba(16,24,44,.82);
+    backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:28px;
+    padding:28px 20px;
+    text-align:center;
+    box-shadow:0 20px 50px rgba(0,0,0,.45);
 }
 
-.container::before{
-    content:'';
-    position:absolute;
-    inset:0;
-    border-radius:30px;
-    padding:1px;
-    background:
-    linear-gradient(
-        135deg,
-        rgba(0,229,255,.4),
-        rgba(123,97,255,.4),
-        rgba(0,255,183,.4)
-    );
-    -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-    -webkit-mask-composite:xor;
-    mask-composite:exclude;
+/* Logo */
+
+.logo{
+    width:95px;
+    height:95px;
+    border-radius:50%;
+    margin:0 auto 18px;
+    padding:4px;
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+    animation: spinGlow 6s linear infinite;
 }
 
-@keyframes entry{
-    from{
-        opacity:0;
-        transform:translateY(25px) scale(.95);
+@keyframes spinGlow{
+    0%{
+        filter:hue-rotate(0deg);
     }
-    to{
-        opacity:1;
-        transform:translateY(0) scale(1);
+    100%{
+        filter:hue-rotate(360deg);
     }
 }
 
-/* BADGE */
+.logo img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    border-radius:50%;
+    border:3px solid #0c1220;
+}
+
+/* Text */
 
 .badge{
-    width:75px;
-    height:75px;
-    border-radius:24px;
-    margin:auto;
-    display:flex;
-    justify-content:center;
+    display:inline-flex;
     align-items:center;
-    font-size:30px;
-    background:
-    linear-gradient(
-        135deg,
-        rgba(0,229,255,.25),
-        rgba(123,97,255,.25)
-    );
+    gap:8px;
+    background:rgba(255,255,255,.05);
     border:1px solid rgba(255,255,255,.08);
-    box-shadow:0 0 35px rgba(0,229,255,.2);
-    margin-bottom:22px;
+    padding:8px 14px;
+    border-radius:999px;
+    margin-bottom:18px;
+    font-size:.85rem;
+    font-weight:700;
+    color:var(--primary);
 }
 
-/* TITLE */
+.badge-dot{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:#00ff99;
+    box-shadow:0 0 12px #00ff99;
+    animation:pulse 1.5s infinite;
+}
+
+@keyframes pulse{
+    0%{
+        transform:scale(1);
+    }
+    50%{
+        transform:scale(1.3);
+    }
+    100%{
+        transform:scale(1);
+    }
+}
 
 h1{
     font-family:'Orbitron',sans-serif;
-    text-align:center;
     font-size:2rem;
-    font-weight:800;
+    line-height:1.2;
     margin-bottom:12px;
-    line-height:1.4;
-    background:
-    linear-gradient(
-        135deg,
-        #fff,
-        #00e5ff,
-        #7b61ff
-    );
+    background:linear-gradient(135deg,#fff,var(--primary));
     -webkit-background-clip:text;
-    color:transparent;
+    -webkit-text-fill-color:transparent;
 }
 
-.subtitle{
-    text-align:center;
+.desc{
     color:var(--muted);
-    font-size:15px;
+    font-size:1rem;
     line-height:1.7;
-    margin-bottom:35px;
+    margin-bottom:28px;
 }
 
-/* QR BOX */
+/* QR */
 
-.qr-wrapper{
+.qr-section{
     position:relative;
-    width:100%;
-    display:flex;
-    justify-content:center;
-    margin-bottom:35px;
+    margin-bottom:28px;
+}
+
+.qr-glow{
+    position:absolute;
+    inset:0;
+    margin:auto;
+    width:250px;
+    height:250px;
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+    border-radius:30px;
+    filter:blur(45px);
+    opacity:.28;
+    animation: glowPulse 2.5s ease infinite;
+}
+
+@keyframes glowPulse{
+    0%{
+        transform:scale(1);
+        opacity:.22;
+    }
+    50%{
+        transform:scale(1.06);
+        opacity:.35;
+    }
+    100%{
+        transform:scale(1);
+        opacity:.22;
+    }
 }
 
 .qr-box{
-    width:300px;
-    height:300px;
-    padding:16px;
-    border-radius:28px;
-    background:#fff;
     position:relative;
-    overflow:hidden;
+    width:260px;
+    height:260px;
+    margin:0 auto;
+    background:#fff;
+    border-radius:28px;
+    padding:16px;
+    animation: floatQR 4s ease-in-out infinite;
     box-shadow:
-    0 0 40px rgba(0,229,255,.18),
-    0 20px 50px rgba(0,0,0,.45);
+    0 20px 60px rgba(0,0,0,.4),
+    0 0 30px rgba(255,255,255,.15);
 }
 
-.qr-box::before{
-    content:'';
-    position:absolute;
-    inset:0;
-    border-radius:28px;
-    padding:2px;
-    background:
-    linear-gradient(
-        135deg,
-        #00e5ff,
-        #7b61ff,
-        #00ffb7
-    );
-
-    -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-
-    -webkit-mask-composite:xor;
-    mask-composite:exclude;
+@keyframes floatQR{
+    0%{
+        transform:translateY(0px);
+    }
+    50%{
+        transform:translateY(-10px);
+    }
+    100%{
+        transform:translateY(0px);
+    }
 }
 
 .qr-box img{
     width:100%;
     height:100%;
     border-radius:18px;
-    position:relative;
-    z-index:1;
 }
 
-/* STATUS */
+/* Scan Line */
 
-.status{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    gap:10px;
-    margin-bottom:30px;
-    color:#00ffb7;
-    font-size:14px;
-    font-weight:600;
+.scan-line{
+    position:absolute;
+    top:16px;
+    left:16px;
+    width:calc(100% - 32px);
+    height:4px;
+    background:linear-gradient(
+        90deg,
+        transparent,
+        rgba(0,212,255,.9),
+        transparent
+    );
+    border-radius:999px;
+    box-shadow:0 0 15px rgba(0,212,255,.9);
+    animation: scan 2.2s linear infinite;
 }
 
-.dot{
-    width:10px;
-    height:10px;
-    border-radius:50%;
-    background:#00ffb7;
-    box-shadow:0 0 15px #00ffb7;
-    animation:blink 1.5s infinite;
-}
-
-@keyframes blink{
-    0%,100%{
-        opacity:1;
+@keyframes scan{
+    0%{
+        transform:translateY(0);
     }
-    50%{
-        opacity:.3;
+    100%{
+        transform:translateY(220px);
     }
 }
 
-/* INFO */
-
-.info{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:14px;
-    margin-bottom:28px;
-}
-
-.info-card{
-    background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.05);
-    border-radius:18px;
-    padding:16px;
-    text-align:center;
-    transition:var(--transition);
-}
-
-.info-card:hover{
-    transform:translateY(-4px);
-    border-color:rgba(0,229,255,.25);
-    box-shadow:0 0 25px rgba(0,229,255,.12);
-}
-
-.info-card i{
-    font-size:22px;
-    margin-bottom:10px;
-    color:#00e5ff;
-}
-
-.info-card h3{
-    font-size:13px;
-    margin-bottom:6px;
-    font-weight:700;
-}
-
-.info-card p{
+.scan-text{
+    margin-top:20px;
     color:var(--muted);
-    font-size:12px;
-    line-height:1.5;
+    line-height:1.7;
+    font-size:.98rem;
 }
 
-/* BUTTONS */
+/* Buttons */
 
 .actions{
     display:flex;
+    flex-direction:column;
     gap:14px;
-    flex-wrap:wrap;
+    margin-top:26px;
 }
 
 .btn{
-    flex:1;
-    min-width:150px;
-    padding:16px 20px;
-    border-radius:16px;
+    width:100%;
+    padding:16px;
     border:none;
+    border-radius:16px;
     text-decoration:none;
+    font-family:'Orbitron',sans-serif;
+    font-size:.9rem;
     font-weight:700;
-    font-size:14px;
-    transition:var(--transition);
     display:flex;
-    justify-content:center;
     align-items:center;
+    justify-content:center;
     gap:10px;
     cursor:pointer;
+    transition:.3s ease;
 }
 
-.btn-primary{
-    background:
-    linear-gradient(
-        135deg,
-        #00e5ff,
-        #7b61ff
-    );
+.primary-btn{
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
     color:#fff;
-    box-shadow:
-    0 10px 30px rgba(0,229,255,.25);
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
 }
 
-.btn-primary:hover{
+.primary-btn:hover{
     transform:translateY(-3px);
-    box-shadow:
-    0 20px 40px rgba(0,229,255,.35);
 }
 
-.btn-secondary{
+.secondary-btn{
     background:rgba(255,255,255,.05);
     color:#fff;
     border:1px solid rgba(255,255,255,.08);
 }
 
-.btn-secondary:hover{
-    transform:translateY(-3px);
+.secondary-btn:hover{
     background:rgba(255,255,255,.08);
-    border-color:rgba(0,229,255,.2);
 }
 
-/* FOOTER */
+/* Footer */
 
 .footer{
     margin-top:28px;
-    text-align:center;
     color:var(--muted);
-    font-size:13px;
+    font-size:.92rem;
 }
 
-.footer span{
-    color:#00e5ff;
-    font-weight:700;
+.footer-links{
+    display:flex;
+    justify-content:center;
+    gap:14px;
+    margin-top:18px;
 }
 
-/* MOBILE */
+.footer-links a{
+    width:44px;
+    height:44px;
+    border-radius:14px;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+    color:#fff;
+    text-decoration:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:.3s ease;
+}
 
-@media(max-width:600px){
+.footer-links a:hover{
+    transform:translateY(-4px);
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+}
+
+/* Mobile */
+
+@media(max-width:480px){
 
     .container{
-        padding:28px 20px;
+        padding:24px 16px;
         border-radius:24px;
     }
 
     h1{
-        font-size:1.5rem;
+        font-size:1.6rem;
     }
 
     .qr-box{
-        width:240px;
-        height:240px;
+        width:220px;
+        height:220px;
+        padding:14px;
     }
 
-    .info{
-        grid-template-columns:1fr;
+    .qr-glow{
+        width:220px;
+        height:220px;
     }
 
-    .actions{
-        flex-direction:column;
-    }
-
-    .btn{
-        width:100%;
+    @keyframes scan{
+        0%{
+            transform:translateY(0);
+        }
+        100%{
+            transform:translateY(185px);
+        }
     }
 
 }
 
 </style>
+
 </head>
 
 <body>
 
-<div class="grid"></div>
+<div class="bg-grid"></div>
 
-<div class="glow one"></div>
-<div class="glow two"></div>
-
-<div class="particles" id="particles"></div>
+<div class="glow"></div>
 
 <div class="container">
 
-    <div class="badge">
-        <i class="fas fa-qrcode"></i>
+    <div class="logo">
+        <img src="https://raw.githubusercontent.com/kermtech6/logo/refs/heads/main/56C67450-A2D2-468E-B0CB-A76D4D48AE37.png">
     </div>
 
-    <h1>KERM-MD-V1<br>QR CONNECT</h1>
+    <div class="badge">
+        <span class="badge-dot"></span>
+        QR READY
+    </div>
 
-    <p class="subtitle">
-        Scan this QR Code using WhatsApp linked devices
-        to securely connect your session instantly.
+    <h1>KERM-MD QR CONNECT</h1>
+
+    <p class="desc">
+        Scan this animated QR code with WhatsApp linked devices to connect your session securely.
     </p>
 
-    <div class="qr-wrapper">
+    <div class="qr-section">
+
+        <div class="qr-glow"></div>
+
         <div class="qr-box">
+
+            <div class="scan-line"></div>
+
             <img src="${qrImage}" alt="QR CODE">
-        </div>
-    </div>
 
-    <div class="status">
-        <div class="dot"></div>
-        Waiting for device connection...
-    </div>
-
-    <div class="info">
-
-        <div class="info-card">
-            <i class="fas fa-shield-alt"></i>
-            <h3>Secure Login</h3>
-            <p>Encrypted authentication system.</p>
         </div>
 
-        <div class="info-card">
-            <i class="fas fa-bolt"></i>
-            <h3>Fast Pairing</h3>
-            <p>Connect your bot in seconds.</p>
-        </div>
+        <p class="scan-text">
+            WhatsApp → Linked Devices → Link A Device → Scan QR
+        </p>
 
     </div>
 
     <div class="actions">
 
-        <a href="./" class="btn btn-primary">
-            <i class="fas fa-home"></i>
-            Home
+        <a href="./" class="btn primary-btn">
+            <i class="fas fa-house"></i>
+            BACK HOME
         </a>
 
-        <a href="https://github.com/kermtech6/KERM-MD-V1"
-        target="_blank"
-        class="btn btn-secondary">
-
+        <a 
+            href="https://github.com/kermtech6/KERM-MD-V1"
+            target="_blank"
+            class="btn secondary-btn"
+        >
             <i class="fab fa-github"></i>
-            GitHub
-
+            GITHUB REPOSITORY
         </a>
 
     </div>
 
     <div class="footer">
-        Powered by <span>Kerm Tech</span>
+
+        <p>
+            Powered By Kerm Tech © <span id="year"></span>
+        </p>
+
+        <div class="footer-links">
+
+            <a href="https://github.com/kermtech6/KERM-MD-V1" target="_blank">
+                <i class="fab fa-github"></i>
+            </a>
+
+            <a href="https://t.me/lord_kerm" target="_blank">
+                <i class="fab fa-telegram"></i>
+            </a>
+
+            <a href="https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12" target="_blank">
+                <i class="fab fa-whatsapp"></i>
+            </a>
+
+        </div>
+
     </div>
 
 </div>
 
 <script>
 
-/* PARTICLES */
-
-function createParticles(){
-
-    const particles =
-    document.getElementById('particles');
-
-    const count =
-    window.innerWidth < 768 ? 18 : 35;
-
-    for(let i = 0; i < count; i++){
-
-        const particle =
-        document.createElement('div');
-
-        particle.classList.add('particle');
-
-        const size =
-        Math.random() * 4 + 1;
-
-        particle.style.width =
-        size + 'px';
-
-        particle.style.height =
-        size + 'px';
-
-        particle.style.left =
-        Math.random() * 100 + '%';
-
-        particle.style.animationDuration =
-        (Math.random() * 12 + 8) + 's';
-
-        particle.style.animationDelay =
-        Math.random() * 10 + 's';
-
-        particle.style.opacity =
-        Math.random();
-
-        particles.appendChild(particle);
-
-    }
-
-}
-
-createParticles();
-
-/* AUTO REFRESH */
-
-setTimeout(() => {
-    location.reload();
-}, 60000);
+document.getElementById('year').textContent = new Date().getFullYear();
 
 </script>
 
@@ -688,34 +573,44 @@ setTimeout(() => {
                     }
                 }
 
-                /* ================= CONNECTED ================= */
-
                 if (connection === "open") {
+
+                    //await Prince.groupAcceptInvite("KJQNQ1RkuImChXtXfnq84X");
+
+                    //await Prince.newsletterFollow(princeChannelId);
 
                     await delay(10000);
 
                     let sessionData = null;
+
                     let attempts = 0;
+
                     const maxAttempts = 10;
 
                     while (attempts < maxAttempts && !sessionData) {
 
                         try {
 
-                            const credsPath =
-                                path.join(sessionDir, id, "creds.json");
+                            const credsPath = path.join(
+                                sessionDir,
+                                id,
+                                "creds.json"
+                            );
 
                             if (fs.existsSync(credsPath)) {
 
                                 const data = fs.readFileSync(credsPath);
 
                                 if (data && data.length > 100) {
+
                                     sessionData = data;
+
                                     break;
                                 }
                             }
 
                             await delay(2000);
+
                             attempts++;
 
                         } catch (readError) {
@@ -723,22 +618,23 @@ setTimeout(() => {
                             console.error("Read error:", readError);
 
                             await delay(2000);
+
                             attempts++;
                         }
                     }
 
                     if (!sessionData) {
+
                         await cleanUpSession();
+
                         return;
                     }
 
                     try {
 
-                        let compressedData =
-                            zlib.gzipSync(sessionData);
+                        let compressedData = zlib.gzipSync(sessionData);
 
-                        let b64data =
-                            compressedData.toString('base64');
+                        let b64data = compressedData.toString('base64');
 
                         await sendButtons(
                             Prince,
@@ -746,42 +642,29 @@ setTimeout(() => {
                             {
                                 title: '',
                                 text: 'KERM-MD-V1~' + b64data,
-
-                                footer: '> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ Kerm Tech*',
-
+                                footer: `> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ Kerm Tech*`,
                                 buttons: [
-
                                     {
                                         name: 'cta_copy',
-
-                                        buttonParamsJson:
-                                        JSON.stringify({
+                                        buttonParamsJson: JSON.stringify({
                                             display_text: 'Copy Session',
-                                            copy_code:
-                                            'KERM-MD-V1~' + b64data
+                                            copy_code: 'KERM-MD-V1~' + b64data
                                         })
                                     },
-
                                     {
                                         name: 'cta_url',
-
-                                        buttonParamsJson:
-                                        JSON.stringify({
+                                        buttonParamsJson: JSON.stringify({
                                             display_text: 'Visit Bot Repo',
                                             url: 'https://github.com/kermtech6/KERM-MD-V1/fork'
                                         })
                                     },
-
                                     {
                                         name: 'cta_url',
-
-                                        buttonParamsJson:
-                                        JSON.stringify({
+                                        buttonParamsJson: JSON.stringify({
                                             display_text: 'Join WaChannel',
                                             url: 'https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12'
                                         })
                                     }
-
                                 ]
                             }
                         );
@@ -802,11 +685,7 @@ setTimeout(() => {
                         await cleanUpSession();
                     }
 
-                }
-
-                /* ================= RECONNECT ================= */
-
-                else if (
+                } else if (
                     connection === "close" &&
                     lastDisconnect &&
                     lastDisconnect.error &&
@@ -817,7 +696,6 @@ setTimeout(() => {
 
                     PRINCE_QR_CODE();
                 }
-
             });
 
         } catch (err) {
