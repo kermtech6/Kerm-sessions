@@ -1,36 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+
 <title>KERM-MD-V1 | PREMIUM PAIR</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@500;700;800&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 
 <style>
 
 :root{
-    --bg:#050816;
-    --bg2:#0c1225;
-    --card:rgba(15,20,40,.72);
-    --border:rgba(255,255,255,.08);
+    --bg:#040816;
+    --bg2:#0d1328;
+    --card:rgba(15,20,40,.78);
 
     --primary:#6ee7ff;
     --secondary:#7c4dff;
-    --accent:#00ffa3;
+    --accent:#00ffb3;
     --danger:#ff4d9d;
 
-    --text:#ecf3ff;
-    --muted:#9ba9c9;
+    --text:#f4f7ff;
+    --muted:#98a6c8;
+
+    --border:rgba(255,255,255,.08);
 
     --shadow:
-    0 20px 80px rgba(0,0,0,.45),
+    0 25px 80px rgba(0,0,0,.45),
     0 0 50px rgba(110,231,255,.08);
 
-    --radius:28px;
+    --radius:30px;
+
     --transition:.35s cubic-bezier(.4,0,.2,1);
 }
 
@@ -38,6 +43,10 @@
     margin:0;
     padding:0;
     box-sizing:border-box;
+}
+
+html{
+    scroll-behavior:smooth;
 }
 
 body{
@@ -49,7 +58,7 @@ body{
     display:flex;
     justify-content:center;
     align-items:center;
-    padding:30px;
+    padding:25px;
     position:relative;
 }
 
@@ -60,9 +69,9 @@ body::before{
     position:fixed;
     inset:0;
     background:
-    radial-gradient(circle at top left, rgba(124,77,255,.25), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(0,255,163,.12), transparent 30%),
-    radial-gradient(circle at center, rgba(110,231,255,.08), transparent 40%);
+    radial-gradient(circle at top left, rgba(124,77,255,.22), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(0,255,179,.10), transparent 30%),
+    radial-gradient(circle at center, rgba(110,231,255,.08), transparent 45%);
     z-index:-3;
 }
 
@@ -72,32 +81,32 @@ body::before{
     background-image:
     linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
-    background-size:45px 45px;
+    background-size:42px 42px;
     z-index:-2;
 }
 
 .blur{
     position:fixed;
     border-radius:50%;
-    filter:blur(100px);
+    filter:blur(120px);
     z-index:-1;
-    animation:floatGlow 8s infinite ease-in-out alternate;
+    animation:floatGlow 7s ease-in-out infinite alternate;
 }
 
 .blur1{
-    width:400px;
-    height:400px;
+    width:350px;
+    height:350px;
     background:#00d4ff25;
     top:-100px;
     left:-100px;
 }
 
 .blur2{
-    width:350px;
-    height:350px;
-    background:#7c4dff25;
-    bottom:-100px;
+    width:300px;
+    height:300px;
+    background:#7c4dff30;
     right:-100px;
+    bottom:-100px;
 }
 
 @keyframes floatGlow{
@@ -105,26 +114,30 @@ body::before{
         transform:translateY(0) scale(1);
     }
     100%{
-        transform:translateY(-20px) scale(1.1);
+        transform:translateY(-25px) scale(1.1);
     }
 }
 
-/* CONTAINER */
+/* WRAPPER */
 
 .wrapper{
     width:100%;
-    max-width:520px;
-    position:relative;
+    max-width:540px;
 }
 
 .container{
-    background:var(--card);
-    backdrop-filter:blur(25px);
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-    padding:40px;
     position:relative;
     overflow:hidden;
+
+    background:var(--card);
+    backdrop-filter:blur(24px);
+
+    border:1px solid var(--border);
+
+    border-radius:var(--radius);
+
+    padding:32px;
+
     box-shadow:var(--shadow);
 }
 
@@ -133,13 +146,15 @@ body::before{
     position:absolute;
     inset:0;
     background:
-    linear-gradient(135deg,
-    rgba(255,255,255,.04),
-    transparent 30%);
+    linear-gradient(
+    135deg,
+    rgba(255,255,255,.05),
+    transparent 25%
+    );
     pointer-events:none;
 }
 
-/* TOP */
+/* TOPBAR */
 
 .topbar{
     display:flex;
@@ -149,37 +164,52 @@ body::before{
 }
 
 .home-btn{
-    width:48px;
-    height:48px;
+    width:50px;
+    height:50px;
     border-radius:16px;
+
     display:flex;
     align-items:center;
     justify-content:center;
+
     text-decoration:none;
+
     color:var(--text);
+
     background:rgba(255,255,255,.05);
-    border:1px solid rgba(255,255,255,.06);
+
+    border:1px solid rgba(255,255,255,.08);
+
     transition:var(--transition);
 }
 
 .home-btn:hover{
     transform:translateY(-4px);
-    background:rgba(110,231,255,.1);
+
+    background:rgba(110,231,255,.08);
+
     color:var(--primary);
-    box-shadow:0 0 25px rgba(110,231,255,.2);
+
+    box-shadow:0 0 20px rgba(110,231,255,.2);
 }
 
 .status{
-    padding:10px 16px;
-    border-radius:999px;
-    background:rgba(0,255,163,.08);
-    border:1px solid rgba(0,255,163,.2);
-    color:var(--accent);
-    font-size:.8rem;
-    font-weight:700;
     display:flex;
     align-items:center;
     gap:10px;
+
+    padding:10px 16px;
+
+    border-radius:999px;
+
+    background:rgba(0,255,179,.08);
+
+    border:1px solid rgba(0,255,179,.18);
+
+    color:var(--accent);
+
+    font-size:.82rem;
+    font-weight:700;
 }
 
 .dot{
@@ -187,30 +217,40 @@ body::before{
     height:10px;
     border-radius:50%;
     background:var(--accent);
+
     box-shadow:0 0 12px var(--accent);
+
     animation:pulse 1.5s infinite;
 }
 
 @keyframes pulse{
-    0%,100%{transform:scale(1);}
-    50%{transform:scale(1.4);}
+    0%,100%{
+        transform:scale(1);
+    }
+    50%{
+        transform:scale(1.4);
+    }
 }
 
 /* LOGO */
 
 .logo-wrap{
-    position:relative;
     width:120px;
     height:120px;
+
+    position:relative;
+
     margin:auto;
-    margin-bottom:30px;
+    margin-bottom:28px;
 }
 
 .logo-wrap::before{
     content:'';
     position:absolute;
     inset:-6px;
+
     border-radius:50%;
+
     background:conic-gradient(
     from 0deg,
     var(--primary),
@@ -218,15 +258,18 @@ body::before{
     var(--accent),
     var(--primary)
     );
+
     animation:spin 5s linear infinite;
 }
 
 .logo-wrap::after{
     content:'';
     position:absolute;
-    inset:4px;
-    background:var(--bg2);
+    inset:5px;
+
     border-radius:50%;
+
+    background:var(--bg2);
 }
 
 @keyframes spin{
@@ -238,9 +281,12 @@ body::before{
 .logo{
     position:relative;
     z-index:2;
+
     width:100%;
     height:100%;
+
     border-radius:50%;
+
     object-fit:cover;
 }
 
@@ -248,140 +294,146 @@ body::before{
 
 h1{
     text-align:center;
+
     font-family:'Orbitron',sans-serif;
+
     font-size:2rem;
+
     margin-bottom:10px;
-    background:linear-gradient(90deg,var(--primary),white);
+
+    background:linear-gradient(
+    90deg,
+    var(--primary),
+    white
+    );
+
     -webkit-background-clip:text;
     color:transparent;
 }
 
 .subtitle{
     text-align:center;
+
     color:var(--muted);
-    margin-bottom:35px;
+
     line-height:1.7;
+
+    margin-bottom:30px;
 }
 
-/* INPUT */
+/* INPUT AREA */
 
-.label{
-    margin-bottom:12px;
-    display:block;
-    color:#cfe6ff;
-    font-weight:600;
-    font-size:.92rem;
-}
-
-.input-box{
-    position:relative;
-    margin-bottom:25px;
-}
-
-.input-box i{
-    position:absolute;
-    left:18px;
-    top:50%;
-    transform:translateY(-50%);
-    color:var(--primary);
-    font-size:1rem;
-}
-
-.input{
-    width:100%;
-    height:65px;
-    border-radius:18px;
-    border:1px solid rgba(255,255,255,.08);
-    background:rgba(255,255,255,.04);
-    outline:none;
-    padding:0 20px 0 55px;
-    color:var(--text);
-    font-size:1rem;
-    transition:var(--transition);
-}
-
-.input:focus{
-    border-color:rgba(110,231,255,.4);
-    box-shadow:
-    0 0 0 5px rgba(110,231,255,.08),
-    0 0 25px rgba(110,231,255,.15);
-}
-
-/* FEATURES */
-
-.features{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
+.form-box{
+    display:flex;
     gap:12px;
     margin-bottom:28px;
 }
 
-.feature{
-    background:rgba(255,255,255,.03);
-    border:1px solid rgba(255,255,255,.05);
-    border-radius:18px;
-    padding:16px;
-    text-align:center;
-    transition:var(--transition);
+.input-box{
+    position:relative;
+    flex:1;
 }
 
-.feature:hover{
-    transform:translateY(-4px);
-    background:rgba(110,231,255,.06);
-}
+.input-box i{
+    position:absolute;
+    top:50%;
+    left:18px;
 
-.feature i{
-    font-size:1.2rem;
-    margin-bottom:8px;
+    transform:translateY(-50%);
+
     color:var(--primary);
 }
 
-.feature span{
-    display:block;
-    font-size:.75rem;
-    color:var(--muted);
+.input{
+    width:100%;
+    height:64px;
+
+    border-radius:18px;
+
+    border:1px solid rgba(255,255,255,.08);
+
+    background:rgba(255,255,255,.04);
+
+    color:var(--text);
+
+    padding:0 18px 0 50px;
+
+    font-size:1rem;
+
+    outline:none;
+
+    transition:var(--transition);
+}
+
+.input:focus{
+    border-color:rgba(110,231,255,.35);
+
+    box-shadow:
+    0 0 0 4px rgba(110,231,255,.08),
+    0 0 25px rgba(110,231,255,.12);
+}
+
+.input::placeholder{
+    color:#8190b4;
 }
 
 /* BUTTON */
 
 .btn{
-    width:100%;
+    min-width:170px;
     height:64px;
+
     border:none;
+
     border-radius:18px;
-    background:linear-gradient(
+
+    cursor:pointer;
+
+    position:relative;
+
+    overflow:hidden;
+
+    font-family:'Orbitron',sans-serif;
+
+    font-weight:700;
+
+    letter-spacing:1px;
+
+    background:
+    linear-gradient(
     135deg,
     var(--primary),
     var(--secondary)
     );
+
     color:white;
-    font-family:'Orbitron',sans-serif;
-    font-size:.95rem;
-    letter-spacing:2px;
-    cursor:pointer;
+
     transition:var(--transition);
-    position:relative;
-    overflow:hidden;
-    font-weight:700;
 }
 
 .btn:hover{
-    transform:translateY(-4px);
+    transform:translateY(-3px);
+
     box-shadow:
-    0 20px 40px rgba(124,77,255,.35);
+    0 15px 35px rgba(124,77,255,.35);
 }
 
 .btn::before{
     content:'';
+
     position:absolute;
     inset:0;
+
     transform:translateX(-100%);
-    background:linear-gradient(
+
+    background:
+    linear-gradient(
     90deg,
     transparent,
     rgba(255,255,255,.25),
     transparent
     );
+
     transition:.7s;
 }
 
@@ -389,15 +441,68 @@ h1{
     transform:translateX(100%);
 }
 
+/* FEATURES */
+
+.features{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+
+    gap:12px;
+
+    margin-bottom:25px;
+}
+
+.feature{
+    background:rgba(255,255,255,.03);
+
+    border:1px solid rgba(255,255,255,.05);
+
+    border-radius:18px;
+
+    padding:16px;
+
+    text-align:center;
+
+    transition:var(--transition);
+}
+
+.feature:hover{
+    transform:translateY(-4px);
+
+    background:rgba(110,231,255,.05);
+}
+
+.feature i{
+    color:var(--primary);
+
+    font-size:1.1rem;
+
+    margin-bottom:10px;
+}
+
+.feature span{
+    display:block;
+
+    color:var(--muted);
+
+    font-size:.8rem;
+}
+
 /* RESULT */
 
 .result{
-    margin-top:30px;
-    background:rgba(255,255,255,.03);
-    border:1px solid rgba(255,255,255,.05);
-    border-radius:24px;
-    padding:30px;
+    margin-top:28px;
+
     display:none;
+
+    background:rgba(255,255,255,.03);
+
+    border:1px solid rgba(255,255,255,.05);
+
+    border-radius:26px;
+
+    padding:28px;
+
     animation:show .5s ease;
 }
 
@@ -414,21 +519,51 @@ h1{
 
 .result-title{
     text-align:center;
+
     color:var(--muted);
+
     margin-bottom:18px;
 }
 
+/* FIXED CODE DISPLAY */
+
 .code{
-    font-family:'Orbitron',sans-serif;
+    width:100%;
+
+    overflow-x:auto;
+    overflow-y:hidden;
+
+    white-space:nowrap;
+
     text-align:center;
-    font-size:2.2rem;
+
+    padding:18px 16px;
+
+    border-radius:18px;
+
+    background:rgba(0,0,0,.22);
+
+    border:1px solid rgba(255,255,255,.05);
+
+    font-family:'Orbitron',sans-serif;
+
+    font-size:2rem;
     font-weight:800;
-    letter-spacing:6px;
-    background:linear-gradient(90deg,var(--primary),white);
-    -webkit-background-clip:text;
-    color:transparent;
-    margin-bottom:22px;
+
+    letter-spacing:5px;
+
+    color:var(--primary);
+
+    margin-bottom:20px;
+
+    scrollbar-width:none;
 }
+
+.code::-webkit-scrollbar{
+    display:none;
+}
+
+/* ACTIONS */
 
 .actions{
     display:flex;
@@ -437,17 +572,36 @@ h1{
 
 .action-btn{
     flex:1;
-    height:55px;
-    border-radius:16px;
+
+    height:56px;
+
     border:none;
+
+    border-radius:16px;
+
     cursor:pointer;
+
     font-weight:700;
+
     transition:var(--transition);
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+
+    font-size:.95rem;
 }
 
 .copy{
-    background:linear-gradient(135deg,var(--accent),#00d68f);
-    color:#04110d;
+    background:
+    linear-gradient(
+    135deg,
+    var(--accent),
+    #00d38f
+    );
+
+    color:#05150e;
 }
 
 .copy:hover{
@@ -455,8 +609,10 @@ h1{
 }
 
 .back{
-    background:rgba(255,255,255,.04);
+    background:rgba(255,255,255,.05);
+
     border:1px solid rgba(255,255,255,.08);
+
     color:white;
 }
 
@@ -468,13 +624,17 @@ h1{
 
 .footer{
     margin-top:25px;
+
     text-align:center;
+
     color:var(--muted);
+
     font-size:.9rem;
 }
 
 .socials{
     margin-top:15px;
+
     display:flex;
     justify-content:center;
     gap:14px;
@@ -483,60 +643,92 @@ h1{
 .social{
     width:45px;
     height:45px;
+
     border-radius:14px;
+
     display:flex;
     align-items:center;
     justify-content:center;
+
     text-decoration:none;
+
     color:white;
+
     background:rgba(255,255,255,.04);
+
     border:1px solid rgba(255,255,255,.05);
+
     transition:var(--transition);
 }
 
 .social:hover{
     transform:translateY(-4px);
+
     background:rgba(110,231,255,.08);
+
     color:var(--primary);
 }
 
-/* LOADING */
+/* LOADER */
 
 .loader{
     width:22px;
     height:22px;
+
     border:3px solid rgba(255,255,255,.25);
     border-top:3px solid white;
+
     border-radius:50%;
+
     animation:spin 1s linear infinite;
+
     display:none;
+
     margin:auto;
 }
 
 /* RESPONSIVE */
 
-@media(max-width:600px){
+@media(max-width:650px){
+
+    body{
+        padding:18px;
+    }
 
     .container{
-        padding:25px;
+        padding:24px;
+    }
+
+    .form-box{
+        flex-direction:column;
+    }
+
+    .btn{
+        width:100%;
     }
 
     .features{
         grid-template-columns:1fr;
     }
 
+    .actions{
+        flex-direction:column;
+    }
+
     h1{
         font-size:1.5rem;
     }
 
-    .actions{
-        flex-direction:column;
+    .code{
+        font-size:1.45rem;
+        letter-spacing:3px;
     }
 
 }
 
 </style>
 </head>
+
 <body>
 
 <div class="grid"></div>
@@ -568,14 +760,37 @@ ONLINE
 <h1>KERM MD PAIR</h1>
 
 <p class="subtitle">
-Generate your secure WhatsApp pairing code instantly with the futuristic KERM-MD-V1 interface.
+Generate your secure WhatsApp pairing code instantly with futuristic premium interface.
 </p>
 
-<label class="label">PHONE NUMBER</label>
+<div class="form-box">
 
 <div class="input-box">
+
 <i class="fas fa-phone"></i>
-<input type="text" class="input" id="phone-number" placeholder="237xxxxxxxx">
+
+<input
+type="tel"
+inputmode="numeric"
+pattern="[0-9]*"
+autocomplete="off"
+class="input"
+id="phone-number"
+placeholder="237xxxxxxxx"
+/>
+
+</div>
+
+<button class="btn" id="submit">
+
+<span id="btnText">
+GENERATE
+</span>
+
+<div class="loader" id="loader"></div>
+
+</button>
+
 </div>
 
 <div class="features">
@@ -597,16 +812,6 @@ Generate your secure WhatsApp pairing code instantly with the futuristic KERM-MD
 
 </div>
 
-<button class="btn" id="submit">
-
-<span id="btnText">
-GENERATE CODE
-</span>
-
-<div class="loader" id="loader"></div>
-
-</button>
-
 <div class="result" id="result">
 
 <div class="result-title">
@@ -614,21 +819,31 @@ Your secure pairing code
 </div>
 
 <div class="code" id="pair-code">
-KERM-22
+KERM123
 </div>
 
 <div class="actions">
 
 <button class="action-btn copy" id="copy-btn">
+
 <i class="fas fa-copy"></i>
-COPY
+
+<span id="copy-text">
+COPY CODE
+</span>
+
 </button>
 
 <a href="./" style="text-decoration:none;flex:1;">
-<button class="action-btn back">
+
+<button class="action-btn back" type="button">
+
 <i class="fas fa-home"></i>
+
 HOME
+
 </button>
+
 </a>
 
 </div>
@@ -670,12 +885,26 @@ HOME
 const submit = document.getElementById('submit');
 const btnText = document.getElementById('btnText');
 const loader = document.getElementById('loader');
+
 const result = document.getElementById('result');
 const pairCode = document.getElementById('pair-code');
+
 const copyBtn = document.getElementById('copy-btn');
+const copyText = document.getElementById('copy-text');
+
 const phoneInput = document.getElementById('phone-number');
 
-submit.addEventListener('click', async () => {
+/* INPUT ONLY NUMBERS */
+
+phoneInput.addEventListener('input',(e)=>{
+
+e.target.value = e.target.value.replace(/\D/g,'');
+
+});
+
+/* GENERATE */
+
+submit.addEventListener('click', async ()=>{
 
 const number = phoneInput.value.trim();
 
@@ -683,11 +912,14 @@ if(!number || number.length < 10){
 
 phoneInput.style.borderColor = '#ff4d9d';
 
+phoneInput.focus();
+
 setTimeout(()=>{
 phoneInput.style.borderColor = '';
 },1500);
 
 return;
+
 }
 
 btnText.style.display='none';
@@ -704,7 +936,8 @@ result.style.display='block';
 pairCode.textContent = data.code || 'ERROR';
 
 result.scrollIntoView({
-behavior:'smooth'
+behavior:'smooth',
+block:'nearest'
 });
 
 }catch(err){
@@ -722,26 +955,39 @@ submit.disabled = false;
 
 });
 
-copyBtn.addEventListener('click',()=>{
+/* COPY */
 
-navigator.clipboard.writeText(pairCode.textContent);
+copyBtn.addEventListener('click', async ()=>{
+
+try{
+
+await navigator.clipboard.writeText(pairCode.textContent);
+
+copyText.innerText = 'COPIED';
 
 copyBtn.innerHTML = `
 <i class="fas fa-check"></i>
-COPIED
+<span id="copy-text">COPIED</span>
 `;
 
 setTimeout(()=>{
+
 copyBtn.innerHTML = `
 <i class="fas fa-copy"></i>
-COPY
+<span id="copy-text">COPY CODE</span>
 `;
+
 },2000);
 
-});
+}catch{
 
-phoneInput.addEventListener('input',(e)=>{
-e.target.value = e.target.value.replace(/\D/g,'');
+copyBtn.innerHTML = `
+<i class="fas fa-xmark"></i>
+<span>FAILED</span>
+`;
+
+}
+
 });
 
 </script>
