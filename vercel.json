@@ -1,27 +1,36 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server/index.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
+  "functions": {
+    "prince.js": {
+      "runtime": "@vercel/node",
+      "memory": 3008,
+      "maxDuration": 300
     }
-  ],
+  },
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/server/index.js"
+      "src": "/socket.io/(.*)",
+      "dest": "/prince.js"
     },
     {
-      "src": "/socket.io/(.*)",
-      "dest": "/server/index.js"
+      "src": "/api/(.*)",
+      "dest": "/prince.js"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/public/(.*)",
+      "dest": "/public/$1"
+    },
+    {
+      "src": "/(.*\\.(css|js|png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|eot))",
+      "dest": "/public/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/public/$1"
+      "dest": "/prince.js"
     }
   ]
 }
