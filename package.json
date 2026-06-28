@@ -1,21 +1,26 @@
 {
   "name": "kerm-session",
-  "main": "./prince.js",
+  "version": "1.0.0",
+  "main": "prince.js",
   "type": "commonjs",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "start": "node prince.js",
+    "dev": "node prince.js",
     "stop": "pm2 stop princesess",
     "restart": "pm2 restart princesess"
   },
   "author": "Mayel Prince",
-  "license": "GPL-3.0 license",
+  "license": "GPL-3.0",
   "dependencies": {
     "@whiskeysockets/baileys": "npm:baileys@6.7.21",
-    "gifted-btns": "*",
     "bcryptjs": "^3.0.2",
     "body-parser": "*",
     "express": "*",
     "fs": "*",
+    "gifted-btns": "*",
     "path": "*",
     "pino": "*",
     "pino-pretty": "^13.0.0",
