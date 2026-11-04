@@ -208,7 +208,7 @@ router.get('/', (req, res) => {
 });
 
 /* ------------------------------------------------------------------ */
-/* Page HTML                                                           */
+/* Page HTML (style carton)                                            */
 /* ------------------------------------------------------------------ */
 function renderPage(id) {
     return `<!DOCTYPE html>
@@ -216,110 +216,108 @@ function renderPage(id) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#05060f">
+<meta name="theme-color" content="#c9a26b">
 <title>KERM-MD-V1 | QR connect</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
-@property --a{syntax:'<angle>';initial-value:0deg;inherits:false}
-:root{--bg:#05060f;--c1:#22e4ff;--c2:#8b5cff;--c3:#ff4fd8;--ok:#3dffb0;--tx:#eaf0ff;--mu:#8d9ac0;--bd:rgba(255,255,255,.09)}
+:root{--k1:#c9a26b;--k2:#b27f45;--k3:#e6c995;--ink:#2e2216;--paper:#fff8e8;--red:#d9432f;--grn:#2f9e5b;--blu:#2c5fd1;--tape:rgba(247,224,140,.88)}
 *{margin:0;padding:0;box-sizing:border-box}
 [hidden]{display:none!important}
-body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;line-height:1.6;display:flex;align-items:center;justify-content:center;padding:20px}
+body{font-family:'Fredoka',sans-serif;background:var(--k1);color:var(--ink);min-height:100vh;overflow-x:hidden;line-height:1.55;display:flex;align-items:center;justify-content:center;padding:26px 18px}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse at center,transparent 50%,rgba(70,40,10,.35)),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .22 0 0 0 0 .1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),repeating-linear-gradient(90deg,rgba(90,55,20,.07) 0 3px,transparent 3px 9px)}
 a{color:inherit;text-decoration:none}
-:focus-visible{outline:2px solid var(--c1);outline-offset:3px}
-#fx{position:fixed;inset:0;z-index:-3}
-.aura{position:fixed;inset:0;z-index:-2;background:radial-gradient(circle at 10% 0,rgba(139,92,255,.28),transparent 35%),radial-gradient(circle at 95% 100%,rgba(34,228,255,.18),transparent 38%)}
-.floor{position:fixed;left:-50%;right:-50%;bottom:0;height:42vh;z-index:-1;pointer-events:none;background:repeating-linear-gradient(90deg,rgba(34,228,255,.22) 0 1px,transparent 1px 60px),repeating-linear-gradient(0deg,rgba(139,92,255,.22) 0 1px,transparent 1px 60px);background-position:0 0,0 0;transform:perspective(420px) rotateX(64deg);transform-origin:bottom;animation:flow 2.5s linear infinite;-webkit-mask-image:linear-gradient(transparent,#000 75%);mask-image:linear-gradient(transparent,#000 75%)}
-@keyframes flow{to{background-position:0 0,0 60px}}
-.wrap{width:100%;max-width:470px;animation:up .8s cubic-bezier(.2,.7,.2,1)}
-@keyframes up{from{opacity:0;transform:translateY(30px)}}
-.neon{position:relative;border-radius:28px;background:rgba(10,13,30,.74);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:30px 24px;text-align:center}
-.neon::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.5px;background:conic-gradient(from var(--a),var(--c1),var(--c2),var(--c3),var(--c1));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:rot 6s linear infinite;pointer-events:none;opacity:.75}
-@keyframes rot{to{--a:360deg}}
-.ring{position:relative;width:92px;height:92px;margin:0 auto 20px}
-.ring::before{content:'';position:absolute;inset:-5px;border-radius:50%;background:conic-gradient(var(--c1),var(--c2),var(--c3),var(--c1));animation:sp 4s linear infinite;filter:drop-shadow(0 0 14px rgba(139,92,255,.6))}
-.ring::after{content:'';position:absolute;inset:3px;border-radius:50%;background:#0a0d1e}
+:focus-visible{outline:3px solid var(--blu);outline-offset:3px}
+.wrap{width:100%;max-width:470px;animation:in .8s cubic-bezier(.3,1.2,.5,1) both}
+@keyframes in{from{opacity:0;transform:translateY(60px) rotate(2deg)}}
+.label{position:relative;background:var(--paper);border-radius:8px;padding:40px 26px 26px;text-align:center;box-shadow:0 3px 0 rgba(90,55,20,.3),0 18px 34px rgba(60,35,10,.3)}
+.label::after{content:'';position:absolute;inset:9px;border:2px dashed rgba(46,34,22,.22);border-radius:5px;pointer-events:none}
+.tape{position:absolute;top:-15px;left:50%;width:120px;height:34px;margin-left:-60px;transform:rotate(-3deg);background:linear-gradient(90deg,rgba(255,255,255,.3),transparent 35%,rgba(255,255,255,.18)),var(--tape);clip-path:polygon(0 0,100% 0,98% 25%,100% 50%,98% 75%,100% 100%,0 100%,2% 75%,0 50%,2% 25%);z-index:3}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;height:54px;padding:0 18px;border:3px solid var(--ink);border-radius:16px;background:var(--red);color:#fff;font:600 1rem 'Fredoka',sans-serif;line-height:1;cursor:pointer;box-shadow:0 6px 0 var(--ink);transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-3px);box-shadow:0 9px 0 var(--ink)}
+.btn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
+.btn.alt{background:var(--paper);color:var(--ink)}
+.stamp{display:inline-block;border:4px double var(--red);color:var(--red);font:700 1.25rem 'Fredoka',sans-serif;letter-spacing:2px;text-transform:uppercase;padding:3px 14px;border-radius:8px;transform:rotate(-8deg);animation:slam .6s cubic-bezier(.2,.9,.3,1.3) both}
+.stamp.g{color:var(--grn);border-color:var(--grn)}
+@keyframes slam{from{transform:scale(3) rotate(-30deg);opacity:0}to{transform:rotate(-8deg);opacity:.95}}
 @keyframes sp{to{transform:rotate(360deg)}}
-.ring img{position:relative;z-index:2;width:100%;height:100%;border-radius:50%;object-fit:cover;padding:7px}
-.chip{display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:99px;background:rgba(255,255,255,.05);border:1px solid var(--bd);font-size:.88rem;font-weight:500;margin-bottom:16px;transition:.4s}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--c1);box-shadow:0 0 12px var(--c1);animation:pl 1.4s infinite}
-.chip.ok .dot{background:var(--ok);box-shadow:0 0 12px var(--ok)}
-.chip.bad .dot{background:var(--c3);box-shadow:0 0 12px var(--c3);animation:none}
-@keyframes pl{50%{transform:scale(1.5);opacity:.6}}
-h1{font-size:1.9rem;font-weight:800;letter-spacing:-.5px;margin-bottom:6px;background:linear-gradient(110deg,var(--c1),#fff 50%,var(--c2));background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gm 5s linear infinite}
-@keyframes gm{to{background-position:250% 0}}
-.sub{color:var(--mu);font-weight:300;margin-bottom:26px}
+
+.sticker{width:88px;height:88px;margin:0 auto 14px;border-radius:50%;background:var(--paper);border:4px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:6px;transform:rotate(-6deg);animation:wob 4s ease-in-out infinite}
+@keyframes wob{50%{transform:rotate(5deg) translateY(-4px)}}
+.sticker img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+.chip{display:inline-flex;align-items:center;gap:9px;padding:7px 16px;border:3px solid var(--ink);border-radius:99px;background:var(--k3);font-weight:600;font-size:.92rem;margin-bottom:12px;transform:rotate(-2deg);transition:.3s}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--ink);animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:.2}}
+.chip.ok{background:#c9efd6}
+.chip.bad{background:#ffd5cc}
+.chip.bad .dot{animation:none}
+h1{font-size:1.9rem;font-weight:700;letter-spacing:-.5px;line-height:1.15}
+.sub{font:700 1.55rem 'Caveat',cursive;color:var(--blu);transform:rotate(-2deg);margin:2px 0 26px}
 
 .qrw{position:relative;width:min(100%,270px);margin:0 auto}
-.qrw::before{content:'';position:absolute;inset:6%;border-radius:30px;background:linear-gradient(135deg,var(--c1),var(--c2));filter:blur(42px);opacity:.3;animation:gp 2.6s ease-in-out infinite}
-@keyframes gp{50%{opacity:.5;transform:scale(1.08)}}
-.qr{position:relative;aspect-ratio:1;border-radius:26px;background:#fff;padding:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45);animation:fq 4.5s ease-in-out infinite}
-@keyframes fq{50%{transform:translateY(-8px)}}
-.qr img{width:100%;height:100%;display:block;border-radius:14px;opacity:0;transition:opacity .5s}
+.qr{position:relative;aspect-ratio:1;background:#fff;border:4px solid var(--ink);border-radius:14px;padding:12px;box-shadow:6px 6px 0 var(--ink);overflow:hidden;animation:tilt 5s ease-in-out infinite}
+@keyframes tilt{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.2deg) translateY(-5px)}}
+.qrw .tape{width:84px;height:28px;margin:0}
+.t1{left:-24px;top:8px;transform:rotate(-40deg)}
+.t2{left:auto;right:-24px;top:auto;bottom:8px;transform:rotate(-40deg)}
+.qr img{width:100%;height:100%;display:block;opacity:0;transition:opacity .5s}
 .qr.ready img{opacity:1}
-.sk{position:absolute;inset:14px;border-radius:14px;background:linear-gradient(110deg,#eef1fa 30%,#fff 50%,#eef1fa 70%);background-size:220% 100%;animation:sh 1.4s linear infinite}
-@keyframes sh{to{background-position:-220% 0}}
-.qr.ready .sk,.qr.done .sk,.qr.dead .sk{display:none}
-.ln{position:absolute;left:14px;right:14px;top:14px;height:3px;border-radius:9px;background:linear-gradient(90deg,transparent,var(--c1),transparent);box-shadow:0 0 16px var(--c1);animation:sc 2.4s ease-in-out infinite;display:none}
+.sk{position:absolute;inset:12px;border-radius:6px;background:repeating-linear-gradient(45deg,#f3e5c8 0 12px,#e9d5ad 12px 24px);background-size:34px 34px;animation:mv 1s linear infinite;display:grid;place-items:center;font-size:3rem}
+.sk span{animation:hop 1.4s ease-in-out infinite}
+@keyframes mv{to{background-position:34px 0}}
+@keyframes hop{50%{transform:translateY(-14px) rotate(-8deg)}}
+.qr.ready .sk,.qr.done .sk,.qr.dead .sk,.qr.link .sk{display:none}
+.ln{position:absolute;left:0;right:0;top:12px;height:3px;background:var(--red);box-shadow:0 0 12px 3px rgba(217,67,47,.65);animation:sc 2s ease-in-out infinite;display:none}
 .qr.ready .ln{display:block}
-@keyframes sc{0%,100%{top:14px}50%{top:calc(100% - 17px)}}
-.ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(5,6,15,.9);color:#fff;font-weight:600;padding:14px}
-.ov i{font-size:3rem}
-.qr.done .ov.d,.qr.dead .ov.x,.qr.link .ov.l{display:flex;animation:up .5s}
-.ov.d i{color:var(--ok);filter:drop-shadow(0 0 16px var(--ok))}
-.ov.x i{color:var(--c3);filter:drop-shadow(0 0 16px var(--c3))}
-.ov.l i{color:var(--c1);animation:sp 1.2s linear infinite}
-.note{margin-top:24px;color:var(--mu);font-size:.92rem;font-weight:300}
-.acts{display:grid;gap:12px;margin-top:22px}
-.abtn{display:flex;align-items:center;justify-content:center;gap:10px;height:54px;border:0;border-radius:16px;cursor:pointer;font:600 .98rem 'Outfit',sans-serif;transition:.3s}
-.abtn:hover{transform:translateY(-3px)}
-.main{background:linear-gradient(135deg,var(--c2),var(--c1));color:#fff;box-shadow:0 12px 34px rgba(139,92,255,.38)}
-.glass{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff}
-.glass:hover{background:rgba(255,255,255,.1)}
-.foot{margin-top:22px;text-align:center;color:var(--mu);font-size:.88rem}
+@keyframes sc{0%,100%{top:12px}50%{top:calc(100% - 15px)}}
+.ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(255,248,232,.97);padding:14px;font-weight:600}
+.qr.done .ov.d,.qr.dead .ov.x,.qr.link .ov.l{display:flex}
+.ov.l span.b{font-size:3rem;animation:hop 1s ease-in-out infinite}
+
+.note{margin-top:26px;color:#5b4630;font-size:.92rem}
+.acts{display:grid;gap:14px;margin-top:22px}
+.foot{margin-top:28px;text-align:center;font-weight:500;font-size:.9rem}
 .soc{display:flex;justify-content:center;gap:12px;margin-top:12px}
-.soc a{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.04);border:1px solid var(--bd);transition:.3s}
-.soc a:hover{transform:translateY(-4px);color:var(--c1);background:rgba(34,228,255,.08)}
+.soc a{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--paper);border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink);transition:.15s}
+.soc a:hover{transform:translateY(-3px) rotate(-5deg)}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<canvas id="fx"></canvas>
-<div class="aura"></div>
-<div class="floor"></div>
 
 <div class="wrap">
-  <main class="neon">
-    <div class="ring"><img src="https://raw.githubusercontent.com/kermtech6/logo/refs/heads/main/56C67450-A2D2-468E-B0CB-A76D4D48AE37.png" alt="KERM-MD logo"></div>
-    <div class="chip" id="chip"><i class="dot"></i><span id="st">Generating your QR code…</span></div>
-    <h1>KERM-MD QR</h1>
-    <p class="sub">Scan with WhatsApp to link your session.</p>
+  <main class="label">
+    <i class="tape"></i>
+    <div class="sticker"><img src="https://raw.githubusercontent.com/kermtech6/logo/refs/heads/main/56C67450-A2D2-468E-B0CB-A76D4D48AE37.png" alt="KERM-MD logo"></div>
+    <div class="chip" id="chip"><i class="dot"></i><span id="st">Packing your QR code…</span></div>
+    <h1>Scan to link</h1>
+    <p class="sub">one scan, one delivery!</p>
 
     <div class="qrw">
+      <i class="tape t1"></i><i class="tape t2"></i>
       <div class="qr" id="qr">
-        <div class="sk"></div>
+        <div class="sk"><span>📦</span></div>
         <img id="img" alt="WhatsApp QR code">
         <i class="ln"></i>
-        <div class="ov d"><i class="fas fa-circle-check"></i><span>Session sent to your WhatsApp</span></div>
-        <div class="ov x"><i class="fas fa-triangle-exclamation"></i><span id="xm">QR expired</span></div>
-        <div class="ov l"><i class="fas fa-circle-notch"></i><span>Linking your device…</span></div>
+        <div class="ov d"><span class="stamp g">Delivered</span><span>Session sent to your WhatsApp</span></div>
+        <div class="ov x"><span class="stamp">Expired</span><span id="xm">QR expired</span></div>
+        <div class="ov l"><span class="b">📦</span><span>Linking your device…</span></div>
       </div>
     </div>
 
     <p class="note" id="note">WhatsApp → Linked devices → Link a device → Scan. The QR refreshes by itself, keep this page open.</p>
 
     <div class="acts">
-      <button class="abtn main" id="rl" type="button" hidden><i class="fas fa-rotate-right"></i>Get a new QR code</button>
-      <a class="abtn glass" href="./pair"><i class="fas fa-link"></i>Use a pair code instead</a>
-      <a class="abtn glass" href="./"><i class="fas fa-house"></i>Back to home</a>
+      <button class="btn" id="rl" type="button" hidden><i class="fas fa-rotate-right"></i>Get a new QR code</button>
+      <a class="btn alt" href="./pair"><i class="fas fa-link"></i>Use a pair code instead</a>
+      <a class="btn alt" href="./"><i class="fas fa-house"></i>Back to home</a>
     </div>
   </main>
 
   <div class="foot">
-    <p>Powered by Kerm Tech © <span id="yr"></span></p>
+    <p>♻️ Powered by Kerm Tech © <span id="yr"></span></p>
     <div class="soc">
       <a href="https://github.com/kermtech6/KERM-MD-V1" target="_blank" rel="noopener" aria-label="GitHub"><i class="fab fa-github"></i></a>
       <a href="https://t.me/lord_kerm" target="_blank" rel="noopener" aria-label="Telegram"><i class="fab fa-telegram"></i></a>
@@ -329,16 +327,6 @@ h1{font-size:1.9rem;font-weight:800;letter-spacing:-.5px;margin-bottom:6px;backg
 </div>
 
 <script>
-(function(){
-  var c=document.getElementById('fx'),x=c.getContext('2d'),w,h,p=[];
-  function R(){w=c.width=innerWidth;h=c.height=innerHeight;p=[];var n=Math.min(70,(w*h/16000)|0);for(var i=0;i<n;i++)p.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.45,vy:(Math.random()-.5)*.45})}
-  R();addEventListener('resize',R);
-  (function L(){x.clearRect(0,0,w,h);
-    for(var i=0;i<p.length;i++){var a=p[i];a.x=(a.x+a.vx+w)%w;a.y=(a.y+a.vy+h)%h;x.fillStyle='rgba(34,228,255,.85)';x.fillRect(a.x,a.y,2,2);
-      for(var j=i+1;j<p.length;j++){var b=p[j],d=Math.hypot(a.x-b.x,a.y-b.y);if(d<130){x.strokeStyle='rgba(139,92,255,'+(1-d/130)*.35+')';x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke()}}}
-    requestAnimationFrame(L)})();
-})();
-
 var id=${JSON.stringify(id)};
 var base=location.pathname;if(base.endsWith('/'))base=base.slice(0,-1);
 var qr=document.getElementById('qr'),img=document.getElementById('img'),chip=document.getElementById('chip'),
@@ -360,13 +348,13 @@ async function poll(){
     }else if(d.status==='linking'){
       set('Linking your device…','ok','link');
     }else if(d.status==='connected'){
-      set('Connected','ok','done');note.textContent='Open WhatsApp: your session ID is waiting in your chat with yourself.';return;
+      set('Delivered','ok','done');note.textContent='Open WhatsApp: your session ID is waiting in your chat with yourself.';return;
     }else if(d.status==='error'){
-      set('Connection failed','bad','dead');end('Connection failed');note.textContent='Something went wrong. Get a new QR code and try again.';return;
+      set('Delivery failed','bad','dead');end('Connection failed');note.textContent='Something went wrong. Get a new QR code and try again.';return;
     }else if(d.status==='expired'){
       set('QR expired','bad','dead');end('QR expired');note.textContent='This session timed out. Get a new QR code to continue.';return;
     }else{
-      set('Generating your QR code…','','');
+      set('Packing your QR code…','','');
     }
   }catch(e){}
   setTimeout(poll,1500);
