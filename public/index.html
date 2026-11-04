@@ -3,111 +3,143 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#05060f">
+<meta name="theme-color" content="#c9a26b">
 <title>KERM-MD-V1 | WhatsApp Bot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Caveat:wght@600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
-@property --a{syntax:'<angle>';initial-value:0deg;inherits:false}
-:root{--bg:#05060f;--c1:#22e4ff;--c2:#8b5cff;--c3:#ff4fd8;--ok:#3dffb0;--tx:#eaf0ff;--mu:#8d9ac0;--bd:rgba(255,255,255,.09)}
+:root{--k1:#c9a26b;--k2:#b27f45;--k3:#e6c995;--ink:#2e2216;--paper:#fff8e8;--red:#d9432f;--grn:#2f9e5b;--blu:#2c5fd1;--tape:rgba(247,224,140,.88)}
 *{margin:0;padding:0;box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth}
-body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;line-height:1.65}
+body{font-family:'Fredoka',sans-serif;background:var(--k1);color:var(--ink);min-height:100vh;overflow-x:hidden;line-height:1.55}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse at center,transparent 50%,rgba(70,40,10,.35)),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .22 0 0 0 0 .1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),repeating-linear-gradient(90deg,rgba(90,55,20,.07) 0 3px,transparent 3px 9px)}
 a{color:inherit;text-decoration:none}
-:focus-visible{outline:2px solid var(--c1);outline-offset:3px}
-#fx{position:fixed;inset:0;z-index:-3}
-.aura{position:fixed;inset:0;z-index:-2;background:radial-gradient(circle at 10% 0,rgba(139,92,255,.28),transparent 35%),radial-gradient(circle at 95% 100%,rgba(34,228,255,.18),transparent 38%)}
-.floor{position:fixed;left:-50%;right:-50%;bottom:0;height:42vh;z-index:-1;pointer-events:none;background:repeating-linear-gradient(90deg,rgba(34,228,255,.22) 0 1px,transparent 1px 60px),repeating-linear-gradient(0deg,rgba(139,92,255,.22) 0 1px,transparent 1px 60px);background-position:0 0,0 0;transform:perspective(420px) rotateX(64deg);transform-origin:bottom;animation:flow 2.5s linear infinite;-webkit-mask-image:linear-gradient(transparent,#000 75%);mask-image:linear-gradient(transparent,#000 75%)}
-@keyframes flow{to{background-position:0 0,0 60px}}
-.neon{position:relative;border-radius:26px;background:rgba(10,13,30,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-.neon::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.5px;background:conic-gradient(from var(--a),var(--c1),var(--c2),var(--c3),var(--c1));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:rot 6s linear infinite;pointer-events:none;opacity:.7}
-@keyframes rot{to{--a:360deg}}
-.grad{background:linear-gradient(110deg,var(--c1),var(--c2),var(--c3),var(--c1));background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gm 6s linear infinite}
-@keyframes gm{to{background-position:300% 0}}
+:focus-visible{outline:3px solid var(--blu);outline-offset:3px}
+.label{position:relative;background:var(--paper);border-radius:8px;box-shadow:0 3px 0 rgba(90,55,20,.3),0 18px 34px rgba(60,35,10,.3)}
+.label::after{content:'';position:absolute;inset:9px;border:2px dashed rgba(46,34,22,.22);border-radius:5px;pointer-events:none}
+.tape{position:absolute;top:-15px;left:50%;width:120px;height:34px;margin-left:-60px;transform:rotate(-3deg);background:linear-gradient(90deg,rgba(255,255,255,.3),transparent 35%,rgba(255,255,255,.18)),var(--tape);clip-path:polygon(0 0,100% 0,98% 25%,100% 50%,98% 75%,100% 100%,0 100%,2% 75%,0 50%,2% 25%);z-index:3}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:15px 28px;border:3px solid var(--ink);border-radius:16px;background:var(--red);color:#fff;font:600 1.05rem 'Fredoka',sans-serif;cursor:pointer;box-shadow:0 6px 0 var(--ink);transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-3px);box-shadow:0 9px 0 var(--ink)}
+.btn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
+.btn.alt{background:var(--paper);color:var(--ink)}
+.stamp{display:inline-block;border:4px double var(--red);color:var(--red);font:700 .95rem 'Fredoka',sans-serif;letter-spacing:2px;text-transform:uppercase;padding:3px 12px;border-radius:8px;transform:rotate(var(--r,-8deg));mix-blend-mode:multiply;animation:slam .6s .9s cubic-bezier(.2,.9,.3,1.3) both}
+@keyframes slam{from{transform:scale(3.2) rotate(calc(var(--r,-8deg) - 14deg));opacity:0}to{transform:scale(1) rotate(var(--r,-8deg));opacity:.92}}
 
-/* nav */
-.nav{position:fixed;top:0;left:0;right:0;z-index:50;padding:14px 24px;background:rgba(5,6,15,.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--bd)}
-.nav-in{max-width:1200px;margin:auto;display:flex;align-items:center;justify-content:space-between}
-.brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:1.15rem;letter-spacing:.5px}
-.brand i{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(139,92,255,.35),rgba(34,228,255,.2));border:1px solid var(--bd);box-shadow:0 0 24px rgba(139,92,255,.4)}
+/* top bar */
+.top{position:sticky;top:0;z-index:50;background:var(--ink);color:var(--paper);border-bottom:4px solid var(--k2);padding:11px 22px}
+.top-in{max-width:1180px;margin:auto;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.2rem}
+.brand b{display:inline-block;font-size:1.7rem;animation:hop 2.6s ease-in-out infinite}
+@keyframes hop{0%,60%,100%{transform:none}70%{transform:translateY(-9px) rotate(-8deg)}82%{transform:rotate(5deg)}}
 .links{display:flex;gap:6px}
-.links a{padding:10px 16px;border-radius:12px;color:var(--mu);font-size:.95rem;transition:.3s}
-.links a:hover{color:#fff;background:rgba(255,255,255,.06)}
+.links a{padding:9px 15px;border-radius:10px;font-weight:500;transition:.2s}
+.links a:hover{background:var(--k3);color:var(--ink);transform:rotate(-2deg)}
 .links i{margin-right:6px}
-.burger{display:none;width:44px;height:44px;border-radius:12px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:#fff;font-size:1.1rem;cursor:pointer}
+.burger{display:none;width:44px;height:44px;border-radius:10px;border:2px solid var(--k3);background:transparent;color:var(--paper);font-size:1.1rem;cursor:pointer}
 
 /* hero */
-.hero{min-height:100vh;display:grid;place-items:center;padding:130px 24px 80px;text-align:center}
-.hero-in{max-width:980px}
-.chip{display:inline-flex;align-items:center;gap:10px;padding:9px 18px;border-radius:99px;background:rgba(255,255,255,.05);border:1px solid var(--bd);color:#cfd8ff;font-size:.9rem;margin-bottom:28px}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 12px var(--ok);animation:pl 1.6s infinite}
-@keyframes pl{50%{transform:scale(1.5);opacity:.6}}
-h1{font-size:clamp(2.6rem,7.5vw,5.4rem);line-height:1.04;font-weight:800;letter-spacing:-1.5px;margin-bottom:24px}
-#typer::after{content:'';display:inline-block;width:.06em;height:.85em;margin-left:6px;vertical-align:-.05em;background:var(--c1);box-shadow:0 0 12px var(--c1);animation:bl 1s steps(1) infinite}
-@keyframes bl{50%{opacity:0}}
-.lead{max-width:640px;margin:auto;color:var(--mu);font-size:1.12rem;font-weight:300}
-.cta-row{margin-top:38px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
-.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:16px 30px;border-radius:16px;font-weight:600;font-size:1rem;transition:.3s}
-.btn::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent,rgba(255,255,255,.3),transparent);transform:translateX(-120%);transition:.7s}
-.btn:hover::after{transform:translateX(120%)}
-.btn:hover{transform:translateY(-3px)}
-.b1{background:linear-gradient(135deg,var(--c2),var(--c1));color:#fff;box-shadow:0 12px 36px rgba(139,92,255,.4)}
-.b1:hover{box-shadow:0 18px 50px rgba(34,228,255,.45)}
-.b2{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14)}
-.stats{margin-top:64px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.stat{padding:26px 16px;text-align:center}
-.stat b{display:block;font-size:2.3rem;font-weight:800;line-height:1.2}
-.stat span{color:var(--mu);font-size:.95rem}
+.hero{padding:60px 18px 20px}
+.carton{position:relative;max-width:920px;margin:0 auto}
+.carton::before{content:'';position:absolute;left:50%;top:-4px;width:74px;height:150px;margin-left:-37px;background:linear-gradient(90deg,rgba(255,255,255,.28),transparent 40%,rgba(255,255,255,.15)),var(--tape);z-index:4;clip-path:polygon(0 0,100% 0,100% 94%,90% 100%,75% 94%,60% 100%,45% 94%,30% 100%,15% 94%,0 100%);animation:peel .7s 1.4s cubic-bezier(.3,1.3,.5,1) both}
+@keyframes peel{from{transform:translateY(-60px);opacity:0}}
+.flaps{display:flex;height:66px;margin:0 16px;position:relative;z-index:1}
+.flaps i{flex:1;background:linear-gradient(var(--k3),var(--k1));border:3px solid var(--k2);border-bottom:0;transform-origin:50% 100%;animation:open 1s .15s cubic-bezier(.3,1.3,.5,1) both}
+.flaps i:first-child{clip-path:polygon(7% 0,100% 0,100% 100%,0 100%);border-radius:14px 0 0 0}
+.flaps i:last-child{clip-path:polygon(0 0,93% 0,100% 100%,0 100%);border-radius:0 14px 0 0;animation-delay:.3s}
+@keyframes open{from{transform:perspective(600px) rotateX(-100deg);opacity:.2}}
+.body{position:relative;z-index:2;background:var(--k2);border-radius:6px 6px 24px 24px;padding:34px 22px 28px;box-shadow:0 24px 40px rgba(60,35,10,.4),inset 0 0 0 3px rgba(0,0,0,.08);background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.05) 0 3px,transparent 3px 9px)}
+.ship{padding:34px 30px 28px;animation:rise .8s .8s cubic-bezier(.3,1.2,.5,1) both}
+@keyframes rise{from{transform:translateY(60px) scale(.96);opacity:0}}
+.meta{display:flex;align-items:center;gap:26px;margin-bottom:22px;flex-wrap:wrap}
+.meta small{display:block;color:#8a7352;font-size:.78rem;letter-spacing:1px}
+.meta b{font-size:1.15rem}
+.meta .stamp{margin-left:auto}
+h1{font-size:clamp(2.4rem,7vw,4.6rem);line-height:1.05;font-weight:700;letter-spacing:-1px;margin-bottom:18px}
+.w{display:inline-block;animation:slam .55s calc(1.1s + var(--i)*.35s) cubic-bezier(.2,.9,.3,1.3) both}
+.w:nth-child(3){background:linear-gradient(transparent 60%,rgba(255,196,40,.8) 60%) no-repeat;background-size:0 100%;animation:slam .55s 1.8s cubic-bezier(.2,.9,.3,1.3) both,hl .8s 2.3s ease forwards}
+@keyframes hl{to{background-size:100% 100%}}
+.lead{max-width:620px;color:#5b4630;font-size:1.1rem;margin-bottom:28px}
+.cta-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:30px}
+.note{font:700 1.7rem 'Caveat',cursive;color:var(--blu);transform:rotate(-5deg);animation:nod 2s ease-in-out infinite}
+@keyframes nod{50%{transform:rotate(-5deg) translateX(-8px)}}
+.bar{position:relative;height:46px;overflow:hidden;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,var(--ink) 4px 5px,transparent 5px 9px,var(--ink) 9px 12px,transparent 12px 14px,var(--ink) 14px 15px,transparent 15px 19px)}
+.bar::after{content:'';position:absolute;top:0;bottom:0;width:3px;background:var(--red);box-shadow:0 0 10px 2px rgba(217,67,47,.6);animation:scan 2.6s ease-in-out infinite}
+@keyframes scan{0%,100%{left:0}50%{left:calc(100% - 3px)}}
+.bc{font:700 .8rem 'Space Mono',monospace;letter-spacing:3px;margin-top:6px;color:#6b563d}
+
+/* tags */
+.tags{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;max-width:780px;margin:64px auto 0}
+.tag{position:relative;transform-origin:50% -28px;animation:swing 4.2s ease-in-out infinite;background:var(--paper);border-radius:8px;padding:36px 12px 20px;text-align:center;box-shadow:0 3px 0 rgba(90,55,20,.3),0 14px 22px rgba(60,35,10,.28)}
+.tag:nth-child(2){animation-delay:-1.4s}.tag:nth-child(3){animation-delay:-2.8s}
+@keyframes swing{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.tag::before{content:'';position:absolute;top:11px;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--k1);border:2px solid var(--k2);box-shadow:inset 0 2px 3px rgba(0,0,0,.35)}
+.tag::after{content:'';position:absolute;bottom:100%;left:50%;width:2px;height:28px;background:var(--ink)}
+.tag b{display:block;font-size:2.3rem;line-height:1.2;font-weight:700}
+.tag span{font-size:.95rem;color:#6b563d}
+
+/* belt */
+.belt{margin:70px 0 0;background:var(--ink);border-block:4px solid var(--k2);overflow:hidden;white-space:nowrap;padding:14px 0;color:var(--paper);font-weight:600}
+.belt div{display:inline-flex;gap:46px;padding-right:46px;animation:belt 26s linear infinite}
+@keyframes belt{to{transform:translateX(-50%)}}
 
 /* sections */
-.sec{max-width:1200px;margin:auto;padding:70px 24px}
-.sec h2{font-size:clamp(2rem,4.5vw,3.2rem);text-align:center;font-weight:700;letter-spacing:-.5px}
-.sec .sub{text-align:center;color:var(--mu);max-width:560px;margin:12px auto 52px;font-weight:300}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:22px}
-.card{display:block;padding:32px;overflow:hidden;transition:transform .35s}
-.card:hover{transform:translateY(-8px)}
-.card::after{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(320px circle at var(--mx,50%) var(--my,50%),rgba(34,228,255,.16),transparent 60%);opacity:0;transition:.3s;pointer-events:none}
-.card:hover::after{opacity:1}
-.ico{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;font-size:1.6rem;margin-bottom:22px;background:linear-gradient(135deg,rgba(139,92,255,.3),rgba(34,228,255,.18));box-shadow:0 0 28px rgba(139,92,255,.25);animation:fl 4s ease-in-out infinite}
-@keyframes fl{50%{transform:translateY(-7px)}}
-.card h3{font-size:1.3rem;margin-bottom:8px;font-weight:600}
-.card p{color:var(--mu);font-weight:300;font-size:.98rem}
-.more{margin-top:20px;display:inline-flex;gap:8px;align-items:center;color:var(--c1);font-weight:500;transition:gap .3s}
+.sec{max-width:1180px;margin:auto;padding:80px 22px 40px}
+.sec h2{font-size:clamp(2rem,4.5vw,3.1rem);text-align:center;font-weight:700;letter-spacing:-.5px}
+.sec .sub{text-align:center;font:700 1.6rem 'Caveat',cursive;color:#6b4a22;margin:2px 0 50px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:34px 26px}
+.card{position:relative;display:block;background:var(--k3);border:3px solid var(--k2);border-radius:14px;padding:38px 26px 26px;box-shadow:0 7px 0 var(--k2),0 20px 26px rgba(60,35,10,.25);transition:transform .25s}
+.card:hover{transform:translateY(-8px) rotate(var(--r,-1deg))}
+.card .tape{width:92px;height:28px;margin-left:-46px;top:-14px}
+.card .stamp{position:absolute;right:14px;top:16px;font-size:.75rem;animation:none;opacity:.9;transform:rotate(10deg)}
+.ico{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;font-size:1.5rem;background:var(--paper);border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);margin-bottom:18px}
+.card:hover .ico{animation:wig .5s}
+@keyframes wig{25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+.card h3{font-size:1.28rem;margin-bottom:6px;font-weight:600}
+.card p{color:#5b4630}
+.more{display:inline-flex;gap:8px;margin-top:16px;color:var(--red);font-weight:600;transition:gap .25s}
 .card:hover .more{gap:14px}
-.cta{max-width:1000px;margin:30px auto 90px;padding:64px 28px;text-align:center}
-.cta .ico{margin:0 auto 24px;width:76px;height:76px;font-size:1.9rem}
-.cta h2{font-size:clamp(1.9rem,4.5vw,3rem);margin-bottom:14px;font-weight:700}
-.cta p{color:var(--mu);max-width:520px;margin:0 auto 30px;font-weight:300}
-footer{border-top:1px solid var(--bd);background:rgba(5,6,18,.8);padding:34px 24px;text-align:center;color:var(--mu);font-size:.95rem}
-.fl{display:flex;gap:12px;justify-content:center;margin-bottom:18px}
-.fl a{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.05);border:1px solid var(--bd);transition:.3s}
-.fl a:hover{transform:translateY(-4px);background:linear-gradient(135deg,var(--c2),var(--c1))}
-footer p a{color:#fff}
 
-.rv{opacity:0;transform:translateY(34px);transition:opacity .8s cubic-bezier(.2,.7,.2,1) var(--d,0s),transform .8s cubic-bezier(.2,.7,.2,1) var(--d,0s)}
-.rv.in{opacity:1;transform:none}
+/* cta */
+.cta{position:relative;max-width:900px;margin:60px auto 90px;padding:56px 24px 44px;text-align:center;border:4px dashed var(--ink);border-radius:22px;background:rgba(255,248,232,.35)}
+.cta .sc{position:absolute;top:-19px;left:0;font-size:1.9rem;animation:cut 7s linear infinite}
+@keyframes cut{from{left:2%}to{left:94%}}
+.cta h2{font-size:clamp(1.9rem,4.5vw,2.9rem);margin-bottom:8px;font-weight:700}
+.cta p{color:#5b4630;margin-bottom:28px}
+.cta .cta-row{justify-content:center;margin:0}
+
+footer{background:var(--ink);color:var(--paper);border-top:4px solid var(--k2);padding:34px 22px;text-align:center}
+.fl{display:flex;gap:12px;justify-content:center;margin-bottom:16px}
+.fl a{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:var(--paper);color:var(--ink);border:3px solid var(--k3);box-shadow:0 4px 0 var(--k2);transition:.2s}
+.fl a:hover{transform:translateY(-4px) rotate(-5deg)}
+footer p{color:var(--k3);font-weight:500}
+footer a.l{color:var(--paper);text-decoration:underline wavy var(--k2)}
+
+.rv{opacity:0}
+.rv.in{animation:drop .7s var(--d,0s) cubic-bezier(.3,1.4,.5,1) both}
+@keyframes drop{from{opacity:0;transform:translateY(-34px) rotate(-2deg) scale(.95)}to{opacity:1;transform:none}}
 
 @media(max-width:800px){
 .burger{display:block}
-.links{position:fixed;top:0;left:0;width:84%;height:100vh;flex-direction:column;padding:90px 22px;background:#080b1c;border-right:1px solid var(--bd);transform:translateX(-105%);transition:transform .4s}
+.links{position:fixed;top:0;left:0;width:82%;height:100vh;flex-direction:column;padding:90px 20px;background:var(--ink);border-right:4px solid var(--k2);transform:translateX(-105%);transition:transform .4s}
 .links.open{transform:none}
-.links a{padding:14px 16px;font-size:1.05rem}
-.stats{grid-template-columns:1fr}
+.links a{padding:14px 16px;font-size:1.1rem}
+.tags{grid-template-columns:1fr;gap:56px;max-width:300px}
 .btn{width:100%}
+.ship{padding:28px 20px 24px}
+.meta .stamp{margin-left:0}
+.note{display:none}
 }
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rv,.ship,.w,.stamp,.flaps i,.carton::before{opacity:1!important}}
 </style>
 </head>
 <body>
-<canvas id="fx"></canvas>
-<div class="aura"></div>
-<div class="floor"></div>
 
-<nav class="nav">
-  <div class="nav-in">
-    <a href="#" class="brand"><i class="fas fa-robot"></i>KERM-MD-V1</a>
+<nav class="top">
+  <div class="top-in">
+    <a href="#" class="brand"><b>📦</b>KERM-MD-V1</a>
     <button class="burger" id="burger" aria-label="Menu"><i class="fas fa-bars"></i></button>
     <div class="links" id="links">
       <a href="https://github.com/kermtech6/KERM-MD-V1" target="_blank" rel="noopener"><i class="fab fa-github"></i>Source code</a>
@@ -119,41 +151,61 @@ footer p a{color:#fff}
 </nav>
 
 <header class="hero">
-  <div class="hero-in">
-    <div class="chip rv"><i class="dot"></i>All systems online</div>
-    <h1 class="rv" style="--d:.1s">Your WhatsApp bot,<br><span class="grad" id="typer"></span></h1>
-    <p class="lead rv" style="--d:.2s">Link your WhatsApp in seconds with a pair code or a QR code, then let KERM-MD-V1 handle automation, integrations and group management.</p>
-    <div class="cta-row rv" style="--d:.3s">
-      <a href="./pair" class="btn b1"><i class="fas fa-link"></i>Get pair code</a>
-      <a href="./qr" class="btn b2"><i class="fas fa-qrcode"></i>Scan QR code</a>
+  <div class="carton">
+    <div class="flaps"><i></i><i></i></div>
+    <div class="body">
+      <div class="label ship">
+        <div class="meta">
+          <div><small>From</small><b>Kerm Tech</b></div>
+          <div><small>To</small><b>You</b></div>
+          <span class="stamp" style="--r:-9deg">Priority</span>
+        </div>
+        <h1><span class="w" style="--i:0">Packed.</span> <span class="w" style="--i:1">Linked.</span> <span class="w" style="--i:2">Delivered.</span></h1>
+        <p class="lead">Link your WhatsApp in seconds with a pair code or a QR code. Your bot arrives ready to automate, manage groups and plug into your tools.</p>
+        <div class="cta-row">
+          <a href="./pair" class="btn"><i class="fas fa-link"></i>Get pair code</a>
+          <a href="./qr" class="btn alt"><i class="fas fa-qrcode"></i>Scan QR code</a>
+          <span class="note">start here!</span>
+        </div>
+        <div class="bar"></div>
+        <div class="bc">KERM-MD-V1 · 0001 · SESSION</div>
+      </div>
     </div>
-    <div class="stats">
-      <div class="stat neon rv" style="--d:.4s"><b class="grad"><span data-to="10" data-suf="K+">0</span></b><span>Active users</span></div>
-      <div class="stat neon rv" style="--d:.5s"><b class="grad"><span data-to="99.9" data-dec="1" data-suf="%">0</span></b><span>Uptime</span></div>
-      <div class="stat neon rv" style="--d:.6s"><b class="grad">24/7</b><span>Live support</span></div>
-    </div>
+  </div>
+
+  <div class="tags">
+    <div class="tag"><b><span data-to="10" data-suf="K+">0</span></b><span>Active users</span></div>
+    <div class="tag"><b><span data-to="99.9" data-dec="1" data-suf="%">0</span></b><span>Uptime</span></div>
+    <div class="tag"><b>24/7</b><span>Live support</span></div>
   </div>
 </header>
 
+<div class="belt" aria-hidden="true">
+  <div>
+    <span>📦 Pair code</span><span>📦 QR code</span><span>📦 Open source</span><span>📦 24/7 support</span><span>📦 Regular updates</span><span>📦 Now shipping sessions</span>
+    <span>📦 Pair code</span><span>📦 QR code</span><span>📦 Open source</span><span>📦 24/7 support</span><span>📦 Regular updates</span><span>📦 Now shipping sessions</span>
+  </div>
+</div>
+
 <section class="sec">
-  <h2 class="rv">Built for speed and stability</h2>
-  <p class="sub rv">Everything you need to connect, customize and run your bot.</p>
+  <h2 class="rv">What's inside the box</h2>
+  <p class="sub rv" style="--d:.1s">everything you need, nothing you don't</p>
   <div class="grid">
-    <a href="./pair" class="card neon rv"><div class="ico"><i class="fas fa-link"></i></div><h3>Pair code login</h3><p>Connect with your phone number only. No second device needed.</p><span class="more">Open <i class="fas fa-arrow-right"></i></span></a>
-    <a href="./qr" class="card neon rv" style="--d:.08s"><div class="ico"><i class="fas fa-qrcode"></i></div><h3>QR code login</h3><p>A live QR that refreshes itself until you scan it.</p><span class="more">Open <i class="fas fa-arrow-right"></i></span></a>
-    <a href="https://github.com/kermtech6/KERM-MD-V1" target="_blank" rel="noopener" class="card neon rv" style="--d:.16s"><div class="ico"><i class="fas fa-code"></i></div><h3>Open source</h3><p>Fork it, read it, change it. A clean codebase made to extend.</p><span class="more">View on GitHub <i class="fas fa-arrow-right"></i></span></a>
-    <a href="https://t.me/lord_kerm" target="_blank" rel="noopener" class="card neon rv" style="--d:.24s"><div class="ico"><i class="fas fa-headset"></i></div><h3>Support</h3><p>Get help with deployment, setup and troubleshooting.</p><span class="more">Chat on Telegram <i class="fas fa-arrow-right"></i></span></a>
-    <a href="https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12" target="_blank" rel="noopener" class="card neon rv" style="--d:.32s"><div class="ico"><i class="fab fa-whatsapp"></i></div><h3>Regular updates</h3><p>New releases and features, straight to your WhatsApp.</p><span class="more">Join the channel <i class="fas fa-arrow-right"></i></span></a>
+    <a href="./pair" class="card rv"><i class="tape"></i><div class="ico"><i class="fas fa-link"></i></div><h3>Pair code login</h3><p>Connect with your phone number only. No second device needed.</p><span class="more">Open <i class="fas fa-arrow-right"></i></span></a>
+    <a href="./qr" class="card rv" style="--d:.08s;--r:1deg"><i class="tape"></i><div class="ico"><i class="fas fa-qrcode"></i></div><h3>QR code login</h3><p>A live QR that refreshes itself until you scan it.</p><span class="more">Open <i class="fas fa-arrow-right"></i></span></a>
+    <a href="https://github.com/kermtech6/KERM-MD-V1" target="_blank" rel="noopener" class="card rv" style="--d:.16s"><i class="tape"></i><span class="stamp">Free</span><div class="ico"><i class="fas fa-code"></i></div><h3>Open source</h3><p>Fork it, read it, change it. A clean codebase made to extend.</p><span class="more">View on GitHub <i class="fas fa-arrow-right"></i></span></a>
+    <a href="https://t.me/lord_kerm" target="_blank" rel="noopener" class="card rv" style="--d:.24s;--r:1deg"><i class="tape"></i><div class="ico"><i class="fas fa-headset"></i></div><h3>Support</h3><p>Get help with deployment, setup and troubleshooting.</p><span class="more">Chat on Telegram <i class="fas fa-arrow-right"></i></span></a>
+    <a href="https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12" target="_blank" rel="noopener" class="card rv" style="--d:.32s"><i class="tape"></i><div class="ico"><i class="fab fa-whatsapp"></i></div><h3>Regular updates</h3><p>New releases and features, straight to your WhatsApp.</p><span class="more">Join the channel <i class="fas fa-arrow-right"></i></span></a>
   </div>
 </section>
 
-<section class="cta neon rv">
-  <div class="ico"><i class="fas fa-bolt"></i></div>
-  <h2>Ready to power up your <span class="grad">bot</span>?</h2>
+<section class="cta rv">
+  <span class="sc">✂️</span>
+  <h2>Ready to open your parcel?</h2>
   <p>Get your session ID in under a minute.</p>
   <div class="cta-row">
-    <a href="./pair" class="btn b1"><i class="fas fa-link"></i>Connect now</a>
-    <a href="https://github.com/kermtech6/KERM-MD-V1" target="_blank" rel="noopener" class="btn b2"><i class="fab fa-github"></i>View on GitHub</a>
+    <a href="./pair" class="btn"><i class="fas fa-link"></i>Connect now</a>
+    <a href="https://github.com/kermtech6/KERM-MD-V1" target="_blank" rel="noopener" class="btn alt"><i class="fab fa-github"></i>View on GitHub</a>
   </div>
 </section>
 
@@ -163,39 +215,20 @@ footer p a{color:#fff}
     <a href="https://t.me/lord_kerm" target="_blank" rel="noopener" aria-label="Telegram"><i class="fab fa-telegram"></i></a>
     <a href="https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12" target="_blank" rel="noopener" aria-label="WhatsApp channel"><i class="fab fa-whatsapp"></i></a>
   </div>
-  <p>© <span id="yr"></span> Made with ❤️ by <a href="https://kermhosting.site" target="_blank" rel="noopener">Kerm Tech</a></p>
+  <p>♻️ Handle with care · © <span id="yr"></span> Made with ❤️ by <a class="l" href="https://kermhosting.site" target="_blank" rel="noopener">Kerm Tech</a></p>
 </footer>
 
 <script>
-/* background network */
-(()=>{const c=document.getElementById('fx'),x=c.getContext('2d');let w,h,p=[];
-const R=()=>{w=c.width=innerWidth;h=c.height=innerHeight;p=Array.from({length:Math.min(80,w*h/16000|0)},()=>({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.45,vy:(Math.random()-.5)*.45}))};
-R();addEventListener('resize',R);
-(function L(){x.clearRect(0,0,w,h);
-p.forEach((a,i)=>{a.x=(a.x+a.vx+w)%w;a.y=(a.y+a.vy+h)%h;x.fillStyle='rgba(34,228,255,.85)';x.fillRect(a.x,a.y,2,2);
-for(let j=i+1;j<p.length;j++){const b=p[j],d=Math.hypot(a.x-b.x,a.y-b.y);if(d<130){x.strokeStyle='rgba(139,92,255,'+(1-d/130)*.35+')';x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke()}}});
-requestAnimationFrame(L)})()})();
-
-/* menu */
 const links=document.getElementById('links'),burger=document.getElementById('burger');
 burger.onclick=()=>{const o=links.classList.toggle('open');burger.innerHTML=o?'<i class="fas fa-times"></i>':'<i class="fas fa-bars"></i>'};
 links.querySelectorAll('a').forEach(a=>a.onclick=()=>{links.classList.remove('open');burger.innerHTML='<i class="fas fa-bars"></i>'});
 
-/* typing */
-(()=>{const el=document.getElementById('typer'),W=['made simple.','always online.','fully yours.','ready in seconds.'];let i=0,j=0,del=false;
-(function T(){const s=W[i];el.textContent=s.slice(0,j);
-if(!del&&j===s.length){del=true;return setTimeout(T,1600)}
-if(del&&j===0){del=false;i=(i+1)%W.length}
-j+=del?-1:1;setTimeout(T,del?35:80)})()})();
-
-/* reveal + counters */
 const count=el=>{const to=+el.dataset.to,dec=+el.dataset.dec||0,suf=el.dataset.suf||'',t0=performance.now();
 (function f(t){const k=Math.min((t-t0)/1600,1),e=1-Math.pow(1-k,3);el.textContent=(to*e).toFixed(dec)+suf;if(k<1)requestAnimationFrame(f)})(t0)};
-const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');e.target.querySelectorAll('[data-to]').forEach(count);io.unobserve(e.target)}}),{threshold:.15});
-document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+setTimeout(()=>document.querySelectorAll('[data-to]').forEach(count),2200);
 
-/* card spotlight */
-document.querySelectorAll('.card').forEach(c=>c.addEventListener('pointermove',e=>{const r=c.getBoundingClientRect();c.style.setProperty('--mx',e.clientX-r.left+'px');c.style.setProperty('--my',e.clientY-r.top+'px')}));
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.15});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 document.getElementById('yr').textContent=new Date().getFullYear();
 </script>
 </body>
