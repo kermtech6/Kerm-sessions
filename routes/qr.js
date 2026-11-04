@@ -1,14 +1,11 @@
-const { 
-    princeId,
-    removeFile
-} = require('../mayel');
+const { princeId, removeFile } = require('../mayel');
 
 const QRCode = require('qrcode');
 const express = require('express');
 const zlib = require('zlib');
 const path = require('path');
 const fs = require('fs');
-const pino = require("pino");
+const pino = require('pino');
 
 const { sendButtons } = require('gifted-btns');
 
@@ -18,720 +15,366 @@ const {
     Browsers,
     delay,
     fetchLatestBaileysVersion
-} = require("@whiskeysockets/baileys");
+} = require('@whiskeysockets/baileys');
 
-let router = express.Router();
+const router = express.Router();
 
-const princeChannelId = '120363424806421640@newsletter';
-const sessionDir = path.join(__dirname, "session");
+const sessionDir = path.join(__dirname, 'session');
+const SESSION_TTL = 3 * 60 * 1000;
+const MAX_RETRIES = 6;
 
-router.get('/', async (req, res) => {
+// id -> { status: waiting | qr | linking | connected | error | expired, qr: dataURL | null }
+const sessions = new Map();
 
-    const id = princeId();
+/* ------------------------------------------------------------------ */
+/* Lecture de creds.json puis envoi de la session sur WhatsApp         */
+/* ------------------------------------------------------------------ */
+async function sendSession(sock, dir) {
+    await delay(10000);
 
-    let responseSent = false;
-    let sessionCleanedUp = false;
+    const credsPath = path.join(dir, 'creds.json');
+    let sessionData = null;
 
-    async function cleanUpSession() {
-
-        if (!sessionCleanedUp) {
-
-            await removeFile(path.join(sessionDir, id));
-
-            sessionCleanedUp = true;
+    for (let i = 0; i < 10 && !sessionData; i++) {
+        try {
+            if (fs.existsSync(credsPath)) {
+                const data = fs.readFileSync(credsPath);
+                if (data && data.length > 100) {
+                    sessionData = data;
+                    break;
+                }
+            }
+        } catch (e) {
+            console.error('Read error:', e);
         }
+        await delay(2000);
     }
 
-    async function PRINCE_QR_CODE() {
+    if (!sessionData) return false;
 
-        const { version } = await fetchLatestBaileysVersion();
+    const b64data = zlib.gzipSync(sessionData).toString('base64');
+    const sessionId = 'KERM-MD-V1~' + b64data;
 
-        const { state, saveCreds } = await useMultiFileAuthState(
-            path.join(sessionDir, id)
-        );
+    await sendButtons(sock, sock.user.id, {
+        title: '',
+        text: sessionId,
+        footer: '> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ Kerm Tech*',
+        buttons: [
+            {
+                name: 'cta_copy',
+                buttonParamsJson: JSON.stringify({
+                    display_text: 'Copy Session',
+                    copy_code: sessionId
+                })
+            },
+            {
+                name: 'cta_url',
+                buttonParamsJson: JSON.stringify({
+                    display_text: 'Visit Bot Repo',
+                    url: 'https://github.com/kermtech6/KERM-MD-V1/fork'
+                })
+            },
+            {
+                name: 'cta_url',
+                buttonParamsJson: JSON.stringify({
+                    display_text: 'Join WaChannel',
+                    url: 'https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12'
+                })
+            }
+        ]
+    });
+
+    await delay(2000);
+    return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* Cycle de vie d'une session QR                                       */
+/* ------------------------------------------------------------------ */
+async function startSession(id, state) {
+    const dir = path.join(sessionDir, id);
+    let sock = null;
+    let done = false;
+    let opened = false;
+    let retries = 0;
+
+    const timer = setTimeout(() => finish('expired'), SESSION_TTL);
+
+    async function finish(status) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        state.status = status;
+        state.qr = null;
+        try { sock && sock.ws && sock.ws.close(); } catch (_) {}
+        try { await removeFile(dir); } catch (_) {}
+        setTimeout(() => sessions.delete(id), 60 * 1000);
+    }
+
+    async function connect() {
+        if (done) return;
 
         try {
+            const { version } = await fetchLatestBaileysVersion();
+            const { state: auth, saveCreds } = await useMultiFileAuthState(dir);
 
-            let Prince = princeConnect({
+            sock = princeConnect({
                 version,
-                auth: state,
+                auth,
                 printQRInTerminal: false,
-                logger: pino({ level: "silent" }),
-                browser: Browsers.macOS("Desktop"),
+                logger: pino({ level: 'silent' }),
+                browser: Browsers.macOS('Desktop'),
                 connectTimeoutMs: 60000,
                 keepAliveIntervalMs: 30000
             });
 
-            Prince.ev.on('creds.update', saveCreds);
+            sock.ev.on('creds.update', saveCreds);
 
-            Prince.ev.on("connection.update", async (s) => {
+            sock.ev.on('connection.update', async (update) => {
+                const { connection, lastDisconnect, qr } = update;
 
-                const { connection, lastDisconnect, qr } = s;
+                if (qr && !done) {
+                    try {
+                        state.qr = await QRCode.toDataURL(qr, { margin: 1, width: 320 });
+                        state.status = 'qr';
+                    } catch (e) {
+                        console.error('QR error:', e);
+                    }
+                }
 
-                if (qr && !responseSent) {
+                if (connection === 'open' && !opened && !done) {
+                    opened = true;
+                    clearTimeout(timer);
+                    state.status = 'linking';
+                    state.qr = null;
 
-                    const qrImage = await QRCode.toDataURL(qr);
+                    try {
+                        const ok = await sendSession(sock, dir);
+                        await finish(ok ? 'connected' : 'error');
+                    } catch (e) {
+                        console.error('Error sending session:', e);
+                        await finish('error');
+                    }
+                    return;
+                }
 
-                    if (!res.headersSent) {
+                if (connection === 'close' && !done) {
+                    const code = lastDisconnect && lastDisconnect.error &&
+                        lastDisconnect.error.output &&
+                        lastDisconnect.error.output.statusCode;
 
-                        res.send(`
-<!DOCTYPE html>
+                    // 401 = déconnecté, 403 = banni/interdit : inutile de réessayer
+                    if (code === 401 || code === 403 || ++retries > MAX_RETRIES) {
+                        return finish('error');
+                    }
+
+                    // 515 = redémarrage demandé juste après le scan du QR
+                    if (code === 515) {
+                        state.status = 'linking';
+                        state.qr = null;
+                    }
+
+                    await delay(code === 515 ? 1500 : 3000);
+                    connect();
+                }
+            });
+        } catch (err) {
+            console.error('Main error:', err);
+            finish('error');
+        }
+    }
+
+    connect();
+}
+
+/* ------------------------------------------------------------------ */
+/* Routes                                                              */
+/* ------------------------------------------------------------------ */
+router.get('/data', (req, res) => {
+    const s = sessions.get(String(req.query.id || ''));
+    res.set('Cache-Control', 'no-store');
+    res.json(s ? { status: s.status, qr: s.qr } : { status: 'expired' });
+});
+
+router.get('/', (req, res) => {
+    const id = princeId();
+    const state = { status: 'waiting', qr: null };
+    sessions.set(id, state);
+
+    res.set('Cache-Control', 'no-store');
+    res.send(renderPage(id));
+
+    startSession(id, state);
+});
+
+/* ------------------------------------------------------------------ */
+/* Page HTML                                                           */
+/* ------------------------------------------------------------------ */
+function renderPage(id) {
+    return `<!DOCTYPE html>
 <html lang="en">
-
 <head>
-
 <meta charset="UTF-8">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>KERM-MD-V1 | QR CONNECT</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#05060f">
+<title>KERM-MD-V1 | QR connect</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
+@property --a{syntax:'<angle>';initial-value:0deg;inherits:false}
+:root{--bg:#05060f;--c1:#22e4ff;--c2:#8b5cff;--c3:#ff4fd8;--ok:#3dffb0;--tx:#eaf0ff;--mu:#8d9ac0;--bd:rgba(255,255,255,.09)}
+*{margin:0;padding:0;box-sizing:border-box}
+[hidden]{display:none!important}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;line-height:1.6;display:flex;align-items:center;justify-content:center;padding:20px}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--c1);outline-offset:3px}
+#fx{position:fixed;inset:0;z-index:-3}
+.aura{position:fixed;inset:0;z-index:-2;background:radial-gradient(circle at 10% 0,rgba(139,92,255,.28),transparent 35%),radial-gradient(circle at 95% 100%,rgba(34,228,255,.18),transparent 38%)}
+.floor{position:fixed;left:-50%;right:-50%;bottom:0;height:42vh;z-index:-1;pointer-events:none;background:repeating-linear-gradient(90deg,rgba(34,228,255,.22) 0 1px,transparent 1px 60px),repeating-linear-gradient(0deg,rgba(139,92,255,.22) 0 1px,transparent 1px 60px);background-position:0 0,0 0;transform:perspective(420px) rotateX(64deg);transform-origin:bottom;animation:flow 2.5s linear infinite;-webkit-mask-image:linear-gradient(transparent,#000 75%);mask-image:linear-gradient(transparent,#000 75%)}
+@keyframes flow{to{background-position:0 0,0 60px}}
+.wrap{width:100%;max-width:470px;animation:up .8s cubic-bezier(.2,.7,.2,1)}
+@keyframes up{from{opacity:0;transform:translateY(30px)}}
+.neon{position:relative;border-radius:28px;background:rgba(10,13,30,.74);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:30px 24px;text-align:center}
+.neon::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.5px;background:conic-gradient(from var(--a),var(--c1),var(--c2),var(--c3),var(--c1));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:rot 6s linear infinite;pointer-events:none;opacity:.75}
+@keyframes rot{to{--a:360deg}}
+.ring{position:relative;width:92px;height:92px;margin:0 auto 20px}
+.ring::before{content:'';position:absolute;inset:-5px;border-radius:50%;background:conic-gradient(var(--c1),var(--c2),var(--c3),var(--c1));animation:sp 4s linear infinite;filter:drop-shadow(0 0 14px rgba(139,92,255,.6))}
+.ring::after{content:'';position:absolute;inset:3px;border-radius:50%;background:#0a0d1e}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ring img{position:relative;z-index:2;width:100%;height:100%;border-radius:50%;object-fit:cover;padding:7px}
+.chip{display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:99px;background:rgba(255,255,255,.05);border:1px solid var(--bd);font-size:.88rem;font-weight:500;margin-bottom:16px;transition:.4s}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--c1);box-shadow:0 0 12px var(--c1);animation:pl 1.4s infinite}
+.chip.ok .dot{background:var(--ok);box-shadow:0 0 12px var(--ok)}
+.chip.bad .dot{background:var(--c3);box-shadow:0 0 12px var(--c3);animation:none}
+@keyframes pl{50%{transform:scale(1.5);opacity:.6}}
+h1{font-size:1.9rem;font-weight:800;letter-spacing:-.5px;margin-bottom:6px;background:linear-gradient(110deg,var(--c1),#fff 50%,var(--c2));background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gm 5s linear infinite}
+@keyframes gm{to{background-position:250% 0}}
+.sub{color:var(--mu);font-weight:300;margin-bottom:26px}
 
-:root{
-    --primary:#00d4ff;
-    --secondary:#7a5cff;
-    --bg:#070b17;
-    --card:#10182c;
-    --text:#ffffff;
-    --muted:#98a2c5;
-}
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
-
-html,
-body{
-    width:100%;
-    min-height:100%;
-    overflow-x:hidden;
-    overflow-y:auto;
-    scroll-behavior:smooth;
-}
-
-body{
-    font-family:'Rajdhani',sans-serif;
-    background:
-    radial-gradient(circle at top left, rgba(0,212,255,.15), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(122,92,255,.18), transparent 30%),
-    var(--bg);
-    color:var(--text);
-    padding:20px 15px 40px;
-    position:relative;
-}
-
-/* Background */
-
-.bg-grid{
-    position:fixed;
-    inset:0;
-    background-image:
-    linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
-    background-size:40px 40px;
-    z-index:-2;
-}
-
-.glow{
-    position:fixed;
-    width:350px;
-    height:350px;
-    border-radius:50%;
-    background:rgba(0,212,255,.12);
-    filter:blur(100px);
-    top:-100px;
-    left:-100px;
-    z-index:-1;
-}
-
-/* Container */
-
-.container{
-    width:100%;
-    max-width:480px;
-    margin:0 auto;
-    background:rgba(16,24,44,.82);
-    backdrop-filter:blur(14px);
-    border:1px solid rgba(255,255,255,.08);
-    border-radius:28px;
-    padding:28px 20px;
-    text-align:center;
-    box-shadow:0 20px 50px rgba(0,0,0,.45);
-}
-
-/* Logo */
-
-.logo{
-    width:95px;
-    height:95px;
-    border-radius:50%;
-    margin:0 auto 18px;
-    padding:4px;
-    background:linear-gradient(135deg,var(--primary),var(--secondary));
-    animation: spinGlow 6s linear infinite;
-}
-
-@keyframes spinGlow{
-    0%{
-        filter:hue-rotate(0deg);
-    }
-    100%{
-        filter:hue-rotate(360deg);
-    }
-}
-
-.logo img{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    border-radius:50%;
-    border:3px solid #0c1220;
-}
-
-/* Text */
-
-.badge{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    background:rgba(255,255,255,.05);
-    border:1px solid rgba(255,255,255,.08);
-    padding:8px 14px;
-    border-radius:999px;
-    margin-bottom:18px;
-    font-size:.85rem;
-    font-weight:700;
-    color:var(--primary);
-}
-
-.badge-dot{
-    width:10px;
-    height:10px;
-    border-radius:50%;
-    background:#00ff99;
-    box-shadow:0 0 12px #00ff99;
-    animation:pulse 1.5s infinite;
-}
-
-@keyframes pulse{
-    0%{
-        transform:scale(1);
-    }
-    50%{
-        transform:scale(1.3);
-    }
-    100%{
-        transform:scale(1);
-    }
-}
-
-h1{
-    font-family:'Orbitron',sans-serif;
-    font-size:2rem;
-    line-height:1.2;
-    margin-bottom:12px;
-    background:linear-gradient(135deg,#fff,var(--primary));
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-}
-
-.desc{
-    color:var(--muted);
-    font-size:1rem;
-    line-height:1.7;
-    margin-bottom:28px;
-}
-
-/* QR */
-
-.qr-section{
-    position:relative;
-    margin-bottom:28px;
-}
-
-.qr-glow{
-    position:absolute;
-    inset:0;
-    margin:auto;
-    width:250px;
-    height:250px;
-    background:linear-gradient(135deg,var(--primary),var(--secondary));
-    border-radius:30px;
-    filter:blur(45px);
-    opacity:.28;
-    animation: glowPulse 2.5s ease infinite;
-}
-
-@keyframes glowPulse{
-    0%{
-        transform:scale(1);
-        opacity:.22;
-    }
-    50%{
-        transform:scale(1.06);
-        opacity:.35;
-    }
-    100%{
-        transform:scale(1);
-        opacity:.22;
-    }
-}
-
-.qr-box{
-    position:relative;
-    width:260px;
-    height:260px;
-    margin:0 auto;
-    background:#fff;
-    border-radius:28px;
-    padding:16px;
-    animation: floatQR 4s ease-in-out infinite;
-    box-shadow:
-    0 20px 60px rgba(0,0,0,.4),
-    0 0 30px rgba(255,255,255,.15);
-}
-
-@keyframes floatQR{
-    0%{
-        transform:translateY(0px);
-    }
-    50%{
-        transform:translateY(-10px);
-    }
-    100%{
-        transform:translateY(0px);
-    }
-}
-
-.qr-box img{
-    width:100%;
-    height:100%;
-    border-radius:18px;
-}
-
-/* Scan Line */
-
-.scan-line{
-    position:absolute;
-    top:16px;
-    left:16px;
-    width:calc(100% - 32px);
-    height:4px;
-    background:linear-gradient(
-        90deg,
-        transparent,
-        rgba(0,212,255,.9),
-        transparent
-    );
-    border-radius:999px;
-    box-shadow:0 0 15px rgba(0,212,255,.9);
-    animation: scan 2.2s linear infinite;
-}
-
-@keyframes scan{
-    0%{
-        transform:translateY(0);
-    }
-    100%{
-        transform:translateY(220px);
-    }
-}
-
-.scan-text{
-    margin-top:20px;
-    color:var(--muted);
-    line-height:1.7;
-    font-size:.98rem;
-}
-
-/* Buttons */
-
-.actions{
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-    margin-top:26px;
-}
-
-.btn{
-    width:100%;
-    padding:16px;
-    border:none;
-    border-radius:16px;
-    text-decoration:none;
-    font-family:'Orbitron',sans-serif;
-    font-size:.9rem;
-    font-weight:700;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    cursor:pointer;
-    transition:.3s ease;
-}
-
-.primary-btn{
-    background:linear-gradient(135deg,var(--primary),var(--secondary));
-    color:#fff;
-    box-shadow:0 10px 30px rgba(0,0,0,.35);
-}
-
-.primary-btn:hover{
-    transform:translateY(-3px);
-}
-
-.secondary-btn{
-    background:rgba(255,255,255,.05);
-    color:#fff;
-    border:1px solid rgba(255,255,255,.08);
-}
-
-.secondary-btn:hover{
-    background:rgba(255,255,255,.08);
-}
-
-/* Footer */
-
-.footer{
-    margin-top:28px;
-    color:var(--muted);
-    font-size:.92rem;
-}
-
-.footer-links{
-    display:flex;
-    justify-content:center;
-    gap:14px;
-    margin-top:18px;
-}
-
-.footer-links a{
-    width:44px;
-    height:44px;
-    border-radius:14px;
-    background:rgba(255,255,255,.05);
-    border:1px solid rgba(255,255,255,.08);
-    color:#fff;
-    text-decoration:none;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    transition:.3s ease;
-}
-
-.footer-links a:hover{
-    transform:translateY(-4px);
-    background:linear-gradient(135deg,var(--primary),var(--secondary));
-}
-
-/* Mobile */
-
-@media(max-width:480px){
-
-    .container{
-        padding:24px 16px;
-        border-radius:24px;
-    }
-
-    h1{
-        font-size:1.6rem;
-    }
-
-    .qr-box{
-        width:220px;
-        height:220px;
-        padding:14px;
-    }
-
-    .qr-glow{
-        width:220px;
-        height:220px;
-    }
-
-    @keyframes scan{
-        0%{
-            transform:translateY(0);
-        }
-        100%{
-            transform:translateY(185px);
-        }
-    }
-
-}
-
+.qrw{position:relative;width:min(100%,270px);margin:0 auto}
+.qrw::before{content:'';position:absolute;inset:6%;border-radius:30px;background:linear-gradient(135deg,var(--c1),var(--c2));filter:blur(42px);opacity:.3;animation:gp 2.6s ease-in-out infinite}
+@keyframes gp{50%{opacity:.5;transform:scale(1.08)}}
+.qr{position:relative;aspect-ratio:1;border-radius:26px;background:#fff;padding:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45);animation:fq 4.5s ease-in-out infinite}
+@keyframes fq{50%{transform:translateY(-8px)}}
+.qr img{width:100%;height:100%;display:block;border-radius:14px;opacity:0;transition:opacity .5s}
+.qr.ready img{opacity:1}
+.sk{position:absolute;inset:14px;border-radius:14px;background:linear-gradient(110deg,#eef1fa 30%,#fff 50%,#eef1fa 70%);background-size:220% 100%;animation:sh 1.4s linear infinite}
+@keyframes sh{to{background-position:-220% 0}}
+.qr.ready .sk,.qr.done .sk,.qr.dead .sk{display:none}
+.ln{position:absolute;left:14px;right:14px;top:14px;height:3px;border-radius:9px;background:linear-gradient(90deg,transparent,var(--c1),transparent);box-shadow:0 0 16px var(--c1);animation:sc 2.4s ease-in-out infinite;display:none}
+.qr.ready .ln{display:block}
+@keyframes sc{0%,100%{top:14px}50%{top:calc(100% - 17px)}}
+.ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(5,6,15,.9);color:#fff;font-weight:600;padding:14px}
+.ov i{font-size:3rem}
+.qr.done .ov.d,.qr.dead .ov.x,.qr.link .ov.l{display:flex;animation:up .5s}
+.ov.d i{color:var(--ok);filter:drop-shadow(0 0 16px var(--ok))}
+.ov.x i{color:var(--c3);filter:drop-shadow(0 0 16px var(--c3))}
+.ov.l i{color:var(--c1);animation:sp 1.2s linear infinite}
+.note{margin-top:24px;color:var(--mu);font-size:.92rem;font-weight:300}
+.acts{display:grid;gap:12px;margin-top:22px}
+.abtn{display:flex;align-items:center;justify-content:center;gap:10px;height:54px;border:0;border-radius:16px;cursor:pointer;font:600 .98rem 'Outfit',sans-serif;transition:.3s}
+.abtn:hover{transform:translateY(-3px)}
+.main{background:linear-gradient(135deg,var(--c2),var(--c1));color:#fff;box-shadow:0 12px 34px rgba(139,92,255,.38)}
+.glass{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff}
+.glass:hover{background:rgba(255,255,255,.1)}
+.foot{margin-top:22px;text-align:center;color:var(--mu);font-size:.88rem}
+.soc{display:flex;justify-content:center;gap:12px;margin-top:12px}
+.soc a{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.04);border:1px solid var(--bd);transition:.3s}
+.soc a:hover{transform:translateY(-4px);color:var(--c1);background:rgba(34,228,255,.08)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
-
 </head>
-
 <body>
+<canvas id="fx"></canvas>
+<div class="aura"></div>
+<div class="floor"></div>
 
-<div class="bg-grid"></div>
+<div class="wrap">
+  <main class="neon">
+    <div class="ring"><img src="https://raw.githubusercontent.com/kermtech6/logo/refs/heads/main/56C67450-A2D2-468E-B0CB-A76D4D48AE37.png" alt="KERM-MD logo"></div>
+    <div class="chip" id="chip"><i class="dot"></i><span id="st">Generating your QR code…</span></div>
+    <h1>KERM-MD QR</h1>
+    <p class="sub">Scan with WhatsApp to link your session.</p>
 
-<div class="glow"></div>
-
-<div class="container">
-
-    <div class="logo">
-        <img src="https://raw.githubusercontent.com/kermtech6/logo/refs/heads/main/56C67450-A2D2-468E-B0CB-A76D4D48AE37.png">
+    <div class="qrw">
+      <div class="qr" id="qr">
+        <div class="sk"></div>
+        <img id="img" alt="WhatsApp QR code">
+        <i class="ln"></i>
+        <div class="ov d"><i class="fas fa-circle-check"></i><span>Session sent to your WhatsApp</span></div>
+        <div class="ov x"><i class="fas fa-triangle-exclamation"></i><span id="xm">QR expired</span></div>
+        <div class="ov l"><i class="fas fa-circle-notch"></i><span>Linking your device…</span></div>
+      </div>
     </div>
 
-    <div class="badge">
-        <span class="badge-dot"></span>
-        QR READY
+    <p class="note" id="note">WhatsApp → Linked devices → Link a device → Scan. The QR refreshes by itself, keep this page open.</p>
+
+    <div class="acts">
+      <button class="abtn main" id="rl" type="button" hidden><i class="fas fa-rotate-right"></i>Get a new QR code</button>
+      <a class="abtn glass" href="./pair"><i class="fas fa-link"></i>Use a pair code instead</a>
+      <a class="abtn glass" href="./"><i class="fas fa-house"></i>Back to home</a>
     </div>
+  </main>
 
-    <h1>KERM-MD QR CONNECT</h1>
-
-    <p class="desc">
-        Scan this animated QR code with WhatsApp linked devices to connect your session securely.
-    </p>
-
-    <div class="qr-section">
-
-        <div class="qr-glow"></div>
-
-        <div class="qr-box">
-
-            <div class="scan-line"></div>
-
-            <img src="${qrImage}" alt="QR CODE">
-
-        </div>
-
-        <p class="scan-text">
-            WhatsApp → Linked Devices → Link A Device → Scan QR
-        </p>
-
+  <div class="foot">
+    <p>Powered by Kerm Tech © <span id="yr"></span></p>
+    <div class="soc">
+      <a href="https://github.com/kermtech6/KERM-MD-V1" target="_blank" rel="noopener" aria-label="GitHub"><i class="fab fa-github"></i></a>
+      <a href="https://t.me/lord_kerm" target="_blank" rel="noopener" aria-label="Telegram"><i class="fab fa-telegram"></i></a>
+      <a href="https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12" target="_blank" rel="noopener" aria-label="WhatsApp channel"><i class="fab fa-whatsapp"></i></a>
     </div>
-
-    <div class="actions">
-
-        <a href="./" class="btn primary-btn">
-            <i class="fas fa-house"></i>
-            BACK HOME
-        </a>
-
-        <a 
-            href="https://github.com/kermtech6/KERM-MD-V1"
-            target="_blank"
-            class="btn secondary-btn"
-        >
-            <i class="fab fa-github"></i>
-            GITHUB REPOSITORY
-        </a>
-
-    </div>
-
-    <div class="footer">
-
-        <p>
-            Powered By Kerm Tech © <span id="year"></span>
-        </p>
-
-        <div class="footer-links">
-
-            <a href="https://github.com/kermtech6/KERM-MD-V1" target="_blank">
-                <i class="fab fa-github"></i>
-            </a>
-
-            <a href="https://t.me/lord_kerm" target="_blank">
-                <i class="fab fa-telegram"></i>
-            </a>
-
-            <a href="https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12" target="_blank">
-                <i class="fab fa-whatsapp"></i>
-            </a>
-
-        </div>
-
-    </div>
-
+  </div>
 </div>
 
 <script>
+(function(){
+  var c=document.getElementById('fx'),x=c.getContext('2d'),w,h,p=[];
+  function R(){w=c.width=innerWidth;h=c.height=innerHeight;p=[];var n=Math.min(70,(w*h/16000)|0);for(var i=0;i<n;i++)p.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.45,vy:(Math.random()-.5)*.45})}
+  R();addEventListener('resize',R);
+  (function L(){x.clearRect(0,0,w,h);
+    for(var i=0;i<p.length;i++){var a=p[i];a.x=(a.x+a.vx+w)%w;a.y=(a.y+a.vy+h)%h;x.fillStyle='rgba(34,228,255,.85)';x.fillRect(a.x,a.y,2,2);
+      for(var j=i+1;j<p.length;j++){var b=p[j],d=Math.hypot(a.x-b.x,a.y-b.y);if(d<130){x.strokeStyle='rgba(139,92,255,'+(1-d/130)*.35+')';x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke()}}}
+    requestAnimationFrame(L)})();
+})();
 
-document.getElementById('year').textContent = new Date().getFullYear();
+var id=${JSON.stringify(id)};
+var base=location.pathname;if(base.endsWith('/'))base=base.slice(0,-1);
+var qr=document.getElementById('qr'),img=document.getElementById('img'),chip=document.getElementById('chip'),
+    st=document.getElementById('st'),note=document.getElementById('note'),rl=document.getElementById('rl'),xm=document.getElementById('xm');
+var last='';
+document.getElementById('yr').textContent=new Date().getFullYear();
+rl.onclick=function(){location.reload()};
 
+function set(text,kind,cls){st.textContent=text;chip.className='chip '+(kind||'');qr.className='qr '+(cls||'')}
+function end(msg){rl.hidden=false;xm.textContent=msg}
+
+async function poll(){
+  try{
+    var r=await fetch(base+'/data?id='+encodeURIComponent(id),{cache:'no-store'});
+    var d=await r.json();
+    if(d.status==='qr'&&d.qr){
+      if(d.qr!==last){img.src=d.qr;last=d.qr}
+      set('QR ready, scan it now','ok','ready');
+    }else if(d.status==='linking'){
+      set('Linking your device…','ok','link');
+    }else if(d.status==='connected'){
+      set('Connected','ok','done');note.textContent='Open WhatsApp: your session ID is waiting in your chat with yourself.';return;
+    }else if(d.status==='error'){
+      set('Connection failed','bad','dead');end('Connection failed');note.textContent='Something went wrong. Get a new QR code and try again.';return;
+    }else if(d.status==='expired'){
+      set('QR expired','bad','dead');end('QR expired');note.textContent='This session timed out. Get a new QR code to continue.';return;
+    }else{
+      set('Generating your QR code…','','');
+    }
+  }catch(e){}
+  setTimeout(poll,1500);
+}
+poll();
 </script>
-
 </body>
-</html>
-                        `);
-
-                        responseSent = true;
-                    }
-                }
-
-                if (connection === "open") {
-
-                    //await Prince.groupAcceptInvite("KJQNQ1RkuImChXtXfnq84X");
-
-                    //await Prince.newsletterFollow(princeChannelId);
-
-                    await delay(10000);
-
-                    let sessionData = null;
-
-                    let attempts = 0;
-
-                    const maxAttempts = 10;
-
-                    while (attempts < maxAttempts && !sessionData) {
-
-                        try {
-
-                            const credsPath = path.join(
-                                sessionDir,
-                                id,
-                                "creds.json"
-                            );
-
-                            if (fs.existsSync(credsPath)) {
-
-                                const data = fs.readFileSync(credsPath);
-
-                                if (data && data.length > 100) {
-
-                                    sessionData = data;
-
-                                    break;
-                                }
-                            }
-
-                            await delay(2000);
-
-                            attempts++;
-
-                        } catch (readError) {
-
-                            console.error("Read error:", readError);
-
-                            await delay(2000);
-
-                            attempts++;
-                        }
-                    }
-
-                    if (!sessionData) {
-
-                        await cleanUpSession();
-
-                        return;
-                    }
-
-                    try {
-
-                        let compressedData = zlib.gzipSync(sessionData);
-
-                        let b64data = compressedData.toString('base64');
-
-                        await sendButtons(
-                            Prince,
-                            Prince.user.id,
-                            {
-                                title: '',
-                                text: 'KERM-MD-V1~' + b64data,
-                                footer: `> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ Kerm Tech*`,
-                                buttons: [
-                                    {
-                                        name: 'cta_copy',
-                                        buttonParamsJson: JSON.stringify({
-                                            display_text: 'Copy Session',
-                                            copy_code: 'KERM-MD-V1~' + b64data
-                                        })
-                                    },
-                                    {
-                                        name: 'cta_url',
-                                        buttonParamsJson: JSON.stringify({
-                                            display_text: 'Visit Bot Repo',
-                                            url: 'https://github.com/kermtech6/KERM-MD-V1/fork'
-                                        })
-                                    },
-                                    {
-                                        name: 'cta_url',
-                                        buttonParamsJson: JSON.stringify({
-                                            display_text: 'Join WaChannel',
-                                            url: 'https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12'
-                                        })
-                                    }
-                                ]
-                            }
-                        );
-
-                        await delay(2000);
-
-                        await Prince.ws.close();
-
-                    } catch (sendError) {
-
-                        console.error(
-                            "Error sending session:",
-                            sendError
-                        );
-
-                    } finally {
-
-                        await cleanUpSession();
-                    }
-
-                } else if (
-                    connection === "close" &&
-                    lastDisconnect &&
-                    lastDisconnect.error &&
-                    lastDisconnect.error.output.statusCode != 401
-                ) {
-
-                    await delay(10000);
-
-                    PRINCE_QR_CODE();
-                }
-            });
-
-        } catch (err) {
-
-            console.error("Main error:", err);
-
-            if (!responseSent) {
-
-                res.status(500).json({
-                    code: "QR Service is Currently Unavailable"
-                });
-
-                responseSent = true;
-            }
-
-            await cleanUpSession();
-        }
-    }
-
-    try {
-
-        await PRINCE_QR_CODE();
-
-    } catch (finalError) {
-
-        console.error("Final error:", finalError);
-
-        await cleanUpSession();
-
-        if (!responseSent) {
-
-            res.status(500).json({
-                code: "Service Error"
-            });
-        }
-    }
-});
+</html>`;
+}
 
 module.exports = router;
