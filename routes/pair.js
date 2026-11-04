@@ -150,7 +150,7 @@ router.get('/', async (req, res) => {
                     name: 'cta_url',
                     buttonParamsJson: JSON.stringify({
                         display_text: 'Join WaChannel',
-                        url: 'https://whatsapp.com/channel/0029VbCKzJ66hENmMeROfT0e'
+                        url: 'https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12'
                     })
                 }
             ]
