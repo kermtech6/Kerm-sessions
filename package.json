@@ -4,7 +4,7 @@
   "main": "prince.js",
   "type": "commonjs",
   "engines": {
-    "node": "22.x"
+    "node": ">=22.12.0"
   },
   "scripts": {
     "start": "node prince.js",
@@ -13,15 +13,13 @@
   "author": "Mayel Prince",
   "license": "GPL-3.0",
   "dependencies": {
-    "@whiskeysockets/baileys": "npm:baileys@6.7.21",
-    "bcryptjs": "^3.0.2",
-    "body-parser": "*",
-    "express": "*",
-    "fs": "*",
-    "gifted-btns": "*",
-    "path": "*",
-    "pino": "*",
-    "pino-pretty": "^13.0.0",
-    "qrcode": "*"
+    "@whiskeysockets/baileys": "npm:baileys@7.0.0-rc14",
+    "bcryptjs": "^3.0.3",
+    "body-parser": "^2.2.2",
+    "express": "^5.2.1",
+    "gifted-btns": "^1.0.2",
+    "pino": "^10.4.0",
+    "pino-pretty": "^13.1.3",
+    "qrcode": "^1.5.4"
   }
 }
