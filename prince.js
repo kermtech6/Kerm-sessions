@@ -40,7 +40,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`
 Deployment Successful!
 
- Prince-Session-Server Running on http://localhost:` + PORT)
+ kerm-Session-Server Running on http://localhost:` + PORT)
 })
 
 module.exports = app
