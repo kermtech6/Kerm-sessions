@@ -1,71 +1,55 @@
-const { princeId, removeFile } = require('../mayel');
+const {
+    SESSION_ROOT, princeId, removeFile, delay,
+    getBaileysVersion, readValidCreds, acquireSlot, releaseSlot, rateLimited
+} = require('../mayel');
 
 const QRCode = require('qrcode');
 const express = require('express');
-const zlib = require('zlib');
 const path = require('path');
-const fs = require('fs');
 const pino = require('pino');
 
 const { sendButtons } = require('gifted-btns');
+const { buildSessionId } = require('../mayel/mega');
 
+const baileys = require('@whiskeysockets/baileys');
 const {
     default: princeConnect,
     useMultiFileAuthState,
-    Browsers,
-    delay,
-    fetchLatestBaileysVersion
-} = require('@whiskeysockets/baileys');
+    jidNormalizedUser,
+    Browsers
+} = baileys;
+
+// Le fork utilisé par le bot peut ne pas exposer makeCacheableSignalKeyStore
+const wrapKeys = (keys, logger) =>
+    typeof baileys.makeCacheableSignalKeyStore === 'function'
+        ? baileys.makeCacheableSignalKeyStore(keys, logger)
+        : keys;
 
 const router = express.Router();
 
-const sessionDir = path.join(__dirname, 'session');
-const SESSION_TTL = 3 * 60 * 1000;
+const SESSION_TTL = 3 * 60 * 1000;     // durée de vie du QR avant le scan
+const DELIVERY_TTL = 3 * 60 * 1000;    // durée max de la livraison après le scan
 const MAX_RETRIES = 6;
 
 // id -> { status: waiting | qr | linking | connected | error | expired, qr: dataURL | null }
 const sessions = new Map();
 
 /* ------------------------------------------------------------------ */
-/* Lecture de creds.json puis envoi de la session sur WhatsApp         */
+/* Envoi de la session sur WhatsApp (boutons, puis texte en secours)   */
 /* ------------------------------------------------------------------ */
-async function sendSession(sock, dir) {
-    await delay(10000);
+function sendSessionMessage(sock, sessionId, withButtons) {
+    const jid = jidNormalizedUser(sock.user.id);
 
-    const credsPath = path.join(dir, 'creds.json');
-    let sessionData = null;
+    if (!withButtons) return sock.sendMessage(jid, { text: sessionId });
 
-    for (let i = 0; i < 10 && !sessionData; i++) {
-        try {
-            if (fs.existsSync(credsPath)) {
-                const data = fs.readFileSync(credsPath);
-                if (data && data.length > 100) {
-                    sessionData = data;
-                    break;
-                }
-            }
-        } catch (e) {
-            console.error('Read error:', e);
-        }
-        await delay(2000);
-    }
-
-    if (!sessionData) return false;
-
-    const b64data = zlib.gzipSync(sessionData).toString('base64');
-    const sessionId = 'KERM-MD-V1~' + b64data;
-
-    await sendButtons(sock, sock.user.id, {
+    return sendButtons(sock, jid, {
         title: '',
         text: sessionId,
         footer: '> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ Kerm Tech*',
         buttons: [
             {
                 name: 'cta_copy',
-                buttonParamsJson: JSON.stringify({
-                    display_text: 'Copy Session',
-                    copy_code: sessionId
-                })
+                buttonParamsJson: JSON.stringify({ display_text: 'Copy Session', copy_code: sessionId })
             },
             {
                 name: 'cta_url',
@@ -83,22 +67,52 @@ async function sendSession(sock, dir) {
             }
         ]
     });
+}
 
-    await delay(2000);
-    return true;
+async function sendSession(sock, dir, isAlive) {
+    await delay(8000);
+    if (!isAlive()) return false;
+
+    const data = await readValidCreds(dir);
+    if (!data || !isAlive()) return false;
+
+    const sessionId = await buildSessionId(data);
+
+    // 4 essais avec boutons, puis 2 en texte simple
+    for (let attempt = 0; attempt < 6; attempt++) {
+        if (!isAlive()) return false;
+
+        try {
+            await sendSessionMessage(sock, sessionId, attempt < 4);
+            await delay(3000);
+            return true;
+        } catch (e) {
+            console.error('Send error (attempt ' + (attempt + 1) + '):', e && e.message);
+            await delay(3000);
+        }
+    }
+    return false;
 }
 
 /* ------------------------------------------------------------------ */
 /* Cycle de vie d'une session QR                                       */
 /* ------------------------------------------------------------------ */
 async function startSession(id, state) {
-    const dir = path.join(sessionDir, id);
+    const dir = path.join(SESSION_ROOT, id);
     let sock = null;
     let done = false;
     let opened = false;
     let retries = 0;
 
-    const timer = setTimeout(() => finish('expired'), SESSION_TTL);
+    let timer = setTimeout(() => finish('expired'), SESSION_TTL);
+
+    function killSocket(s) {
+        if (!s) return;
+        try { s.ev.removeAllListeners('connection.update'); } catch (_) {}
+        try { s.ev.removeAllListeners('creds.update'); } catch (_) {}
+        try { s.end(undefined); } catch (_) {}
+        try { s.ws && s.ws.close(); } catch (_) {}
+    }
 
     async function finish(status) {
         if (done) return;
@@ -106,8 +120,9 @@ async function startSession(id, state) {
         clearTimeout(timer);
         state.status = status;
         state.qr = null;
-        try { sock && sock.ws && sock.ws.close(); } catch (_) {}
-        try { await removeFile(dir); } catch (_) {}
+        killSocket(sock);
+        await removeFile(dir);
+        releaseSlot();
         setTimeout(() => sessions.delete(id), 60 * 1000);
     }
 
@@ -115,71 +130,86 @@ async function startSession(id, state) {
         if (done) return;
 
         try {
-            const { version } = await fetchLatestBaileysVersion();
             const { state: auth, saveCreds } = await useMultiFileAuthState(dir);
+            const logger = pino({ level: 'silent' });
+            const version = await getBaileysVersion();
 
-            sock = princeConnect({
-                version,
-                auth,
+            const s = princeConnect({
+                ...(version ? { version } : {}),
+                auth: {
+                    creds: auth.creds,
+                    keys: wrapKeys(auth.keys, logger)
+                },
                 printQRInTerminal: false,
-                logger: pino({ level: 'silent' }),
+                logger,
                 browser: Browsers.macOS('Desktop'),
+                syncFullHistory: false,
+                markOnlineOnConnect: false,
+                getMessage: async () => undefined,
                 connectTimeoutMs: 60000,
                 keepAliveIntervalMs: 30000
             });
 
-            sock.ev.on('creds.update', saveCreds);
+            sock = s;
 
-            sock.ev.on('connection.update', async (update) => {
+            s.ev.on('creds.update', async () => {
+                if (done || sock !== s) return;
+                try { await saveCreds(); } catch (e) { console.error('saveCreds error:', e && e.message); }
+            });
+
+            s.ev.on('connection.update', async (update) => {
                 const { connection, lastDisconnect, qr } = update;
 
-                if (qr && !done) {
+                if (qr && !done && !opened) {
                     try {
                         state.qr = await QRCode.toDataURL(qr, { margin: 1, width: 320 });
                         state.status = 'qr';
                     } catch (e) {
-                        console.error('QR error:', e);
+                        console.error('QR error:', e && e.message);
                     }
                 }
 
                 if (connection === 'open' && !opened && !done) {
                     opened = true;
                     clearTimeout(timer);
+                    timer = setTimeout(() => finish('error'), DELIVERY_TTL);
                     state.status = 'linking';
                     state.qr = null;
 
                     try {
-                        const ok = await sendSession(sock, dir);
+                        const ok = await sendSession(s, dir, () => !done && sock === s);
                         await finish(ok ? 'connected' : 'error');
                     } catch (e) {
-                        console.error('Error sending session:', e);
+                        console.error('Error sending session:', e && e.message);
                         await finish('error');
                     }
                     return;
                 }
 
-                if (connection === 'close' && !done) {
+                if (connection === 'close' && !done && sock === s) {
                     const code = lastDisconnect && lastDisconnect.error &&
                         lastDisconnect.error.output &&
                         lastDisconnect.error.output.statusCode;
 
-                    // 401 = déconnecté, 403 = banni/interdit : inutile de réessayer
-                    if (code === 401 || code === 403 || ++retries > MAX_RETRIES) {
+                    // 401 déconnecté, 403 interdit, 440 session remplacée : inutile de réessayer
+                    if (code === 401 || code === 403 || code === 440 || ++retries > MAX_RETRIES) {
                         return finish('error');
                     }
 
                     // 515 = redémarrage demandé juste après le scan du QR
                     if (code === 515) {
+                        opened = false;
                         state.status = 'linking';
                         state.qr = null;
                     }
 
+                    killSocket(s);
                     await delay(code === 515 ? 1500 : 3000);
                     connect();
                 }
             });
         } catch (err) {
-            console.error('Main error:', err);
+            console.error('Main error:', err && err.message);
             finish('error');
         }
     }
@@ -203,6 +233,13 @@ router.get('/', (req, res) => {
 
     res.set('Cache-Control', 'no-store');
     res.send(renderPage(id));
+
+    // Trop de demandes ou serveur plein : la page affichera « Connection failed »
+    if (rateLimited(req.ip) || !acquireSlot()) {
+        state.status = 'error';
+        setTimeout(() => sessions.delete(id), 60 * 1000);
+        return;
+    }
 
     startSession(id, state);
 });

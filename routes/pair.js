@@ -1,62 +1,42 @@
-const { princeId, removeFile, generateRandomCode } = require('../mayel');
+const {
+    SESSION_ROOT, princeId, removeFile, generateRandomCode, delay,
+    getBaileysVersion, readValidCreds, acquireSlot, releaseSlot, rateLimited
+} = require('../mayel');
 
-const zlib = require('zlib');
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
 const pino = require('pino');
 
 const { sendButtons } = require('gifted-btns');
+const { buildSessionId } = require('../mayel/mega');
 
+const baileys = require('@whiskeysockets/baileys');
 const {
     default: princeConnect,
     useMultiFileAuthState,
-    delay,
-    fetchLatestBaileysVersion,
-    makeCacheableSignalKeyStore,
     jidNormalizedUser,
     Browsers
-} = require('@whiskeysockets/baileys');
+} = baileys;
+
+// Le fork utilisé par le bot peut ne pas exposer makeCacheableSignalKeyStore
+const wrapKeys = (keys, logger) =>
+    typeof baileys.makeCacheableSignalKeyStore === 'function'
+        ? baileys.makeCacheableSignalKeyStore(keys, logger)
+        : keys;
 
 const router = express.Router();
 
-const sessionDir = path.join(__dirname, 'session');
-
-const RESPONSE_TIMEOUT = 45 * 1000;   // délai max pour obtenir le code de pairing
-const PAIR_TTL = 4 * 60 * 1000;       // temps laissé pour saisir le code dans WhatsApp
+// Heroku coupe toute requête HTTP après 30 s : on répond avant (H12)
+const RESPONSE_TIMEOUT = 25 * 1000;
+const PAIR_TTL = 4 * 60 * 1000;       // temps pour saisir le code dans WhatsApp
 const DELIVERY_TTL = 3 * 60 * 1000;   // temps max pour livrer la session après connexion
-const SETTLE_DELAY = 10 * 1000;       // pause après connexion pour que les creds soient complètes
+const SETTLE_DELAY = 8 * 1000;        // pause après connexion pour que les creds soient complètes
 const MAX_RECONNECTS = 8;
 
-/* ------------------------------------------------------------------ */
-/* Lecture de creds.json                                               */
-/* ------------------------------------------------------------------ */
-async function readCreds(dir) {
-    const credsPath = path.join(dir, 'creds.json');
-
-    for (let i = 0; i < 10; i++) {
-        try {
-            if (fs.existsSync(credsPath)) {
-                const data = fs.readFileSync(credsPath);
-                if (data && data.length > 100) return data;
-            }
-        } catch (e) {
-            console.error('Read error:', e);
-        }
-        await delay(2000);
-    }
-    return null;
-}
-
-/* ------------------------------------------------------------------ */
-/* Envoi du message de session (boutons, ou texte simple en secours)   */
-/* ------------------------------------------------------------------ */
 function sendSessionMessage(sock, sessionId, withButtons) {
     const jid = jidNormalizedUser(sock.user.id);
 
-    if (!withButtons) {
-        return sock.sendMessage(jid, { text: sessionId });
-    }
+    if (!withButtons) return sock.sendMessage(jid, { text: sessionId });
 
     return sendButtons(sock, jid, {
         title: '',
@@ -65,10 +45,7 @@ function sendSessionMessage(sock, sessionId, withButtons) {
         buttons: [
             {
                 name: 'cta_copy',
-                buttonParamsJson: JSON.stringify({
-                    display_text: 'Copy Session',
-                    copy_code: sessionId
-                })
+                buttonParamsJson: JSON.stringify({ display_text: 'Copy Session', copy_code: sessionId })
             },
             {
                 name: 'cta_url',
@@ -89,17 +66,26 @@ function sendSessionMessage(sock, sessionId, withButtons) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Route : GET /code?number=237xxxxxxxx                                */
+/* GET /code?number=237xxxxxxxx                                        */
 /* ------------------------------------------------------------------ */
 router.get('/', async (req, res) => {
-    const num = String(req.query.number || '').replace(/[^0-9]/g, '');
+    res.set('Cache-Control', 'no-store');
 
+    const num = String(req.query.number || '').replace(/[^0-9]/g, '');
     if (num.length < 8 || num.length > 15) {
         return res.status(400).json({ code: 'Invalid number' });
     }
 
+    if (rateLimited(req.ip)) {
+        return res.status(429).json({ code: 'Too many attempts, wait a few minutes' });
+    }
+
+    if (!acquireSlot()) {
+        return res.status(503).json({ code: 'Server busy, try again in a minute' });
+    }
+
     const id = princeId();
-    const dir = path.join(sessionDir, id);
+    const dir = path.join(SESSION_ROOT, id);
 
     let sock = null;
     let done = false;
@@ -122,17 +108,25 @@ router.get('/', async (req, res) => {
         res.status(status).json(body);
     }
 
+    function killSocket(s) {
+        if (!s) return;
+        try { s.ev.removeAllListeners('connection.update'); } catch (_) {}
+        try { s.ev.removeAllListeners('creds.update'); } catch (_) {}
+        try { s.end(undefined); } catch (_) {}
+        try { s.ws && s.ws.close(); } catch (_) {}
+    }
+
     async function finish() {
         if (done) return;
         done = true;
         clearTimeout(timer);
         clearTimeout(respTimer);
-        try { sock && sock.ws && sock.ws.close(); } catch (_) {}
-        try { await removeFile(dir); } catch (e) { console.error('Cleanup error:', e); }
+        killSocket(sock);
+        await removeFile(dir);
+        releaseSlot();
         reply(500, { code: 'Service Error' });
     }
 
-    // Livraison de la session. Peut être relancée si la connexion retombe puis revient.
     async function deliver(s, alive) {
         if (delivering || done) return;
         delivering = true;
@@ -144,11 +138,11 @@ router.get('/', async (req, res) => {
             await delay(SETTLE_DELAY);
             if (done || !alive()) return;
 
-            const data = await readCreds(dir);
+            const data = await readValidCreds(dir);
             if (done || !alive()) return;
             if (!data) return await finish();
 
-            const sessionId = 'KERM-MD-V1~' + zlib.gzipSync(data).toString('base64');
+            const sessionId = await buildSessionId(data);
 
             // 4 essais avec boutons, puis 2 en texte simple
             for (let attempt = 0; attempt < 6; attempt++) {
@@ -159,7 +153,7 @@ router.get('/', async (req, res) => {
                     await delay(3000);
                     return await finish();
                 } catch (e) {
-                    console.error('Send error (attempt ' + (attempt + 1) + '):', e);
+                    console.error('Send error (attempt ' + (attempt + 1) + '):', e && e.message);
                     await delay(3000);
                 }
             }
@@ -178,28 +172,22 @@ router.get('/', async (req, res) => {
         try {
             const { state, saveCreds } = await useMultiFileAuthState(dir);
             const logger = pino({ level: 'fatal' });
-
-            let version;
-            try {
-                ({ version } = await fetchLatestBaileysVersion());
-            } catch (e) {
-                console.error('Version fetch failed, using default:', e.message);
-            }
+            const version = await getBaileysVersion();
 
             const s = princeConnect({
                 ...(version ? { version } : {}),
                 auth: {
                     creds: state.creds,
-                    keys: makeCacheableSignalKeyStore(state.keys, logger)
+                    keys: wrapKeys(state.keys, logger)
                 },
                 printQRInTerminal: false,
                 logger,
                 browser: Browsers.macOS('Safari'),
                 syncFullHistory: false,
-                generateHighQualityLinkPreview: true,
-                shouldIgnoreJid: jid => !!jid?.endsWith('@g.us'),
+                generateHighQualityLinkPreview: false,
+                shouldIgnoreJid: (jid) => !!jid && jid.endsWith('@g.us'),
                 getMessage: async () => undefined,
-                markOnlineOnConnect: true,
+                markOnlineOnConnect: false,
                 connectTimeoutMs: 60000,
                 keepAliveIntervalMs: 30000
             });
@@ -208,8 +196,8 @@ router.get('/', async (req, res) => {
             let alive = true;
 
             s.ev.on('creds.update', async () => {
-                if (done) return;
-                try { await saveCreds(); } catch (e) { console.error('saveCreds error:', e); }
+                if (done || sock !== s) return;
+                try { await saveCreds(); } catch (e) { console.error('saveCreds error:', e && e.message); }
             });
 
             s.ev.on('connection.update', async (update) => {
@@ -223,7 +211,7 @@ router.get('/', async (req, res) => {
 
                 if (connection === 'close') {
                     alive = false;
-                    if (done) return;
+                    if (done || sock !== s) return;
 
                     const code = lastDisconnect && lastDisconnect.error &&
                         lastDisconnect.error.output &&
@@ -234,6 +222,7 @@ router.get('/', async (req, res) => {
                         return finish();
                     }
 
+                    killSocket(s);
                     // 515 = redémarrage demandé par WhatsApp juste après le pairing
                     await delay(code === 515 ? 1500 : 4000);
                     connect();
@@ -242,16 +231,19 @@ router.get('/', async (req, res) => {
 
             if (!s.authState.creds.registered && !responded) {
                 await delay(1500);
+                if (done) return;
                 const code = await s.requestPairingCode(num, generateRandomCode());
                 reply(200, { code });
             }
         } catch (err) {
-            console.error('Main error:', err);
+            console.error('Main error:', err && err.message);
             reply(500, { code: 'Service is Currently Unavailable' });
             await finish();
         }
     }
 
+    // Si le client ferme la page avant la fin du pairing, on garde la session active
+    // (l'utilisateur peut encore saisir le code) : le TTL se charge du nettoyage.
     connect();
 });
 
