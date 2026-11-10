@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: kerm-md-v1-session
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: MAX_SESSIONS
+        value: "5"
+      - key: MEGA_EMAIL
+        sync: false
+      - key: MEGA_PASSWORD
+        sync: false
