@@ -3,8 +3,12 @@ const zlib = require('zlib');
 const PREFIX = 'KERM-MD-V1~';
 const FOLDER_NAME = 'KERM-MD-V1-SESSIONS';
 
+/* ⚠️ Identifiants MEGA mis en dur */
+const MEGA_EMAIL = 'bookmakerp@gmail.com';
+const MEGA_PASSWORD = 'Emmanuelrayan6.';
+
 function megaEnabled() {
-    return !!(process.env.MEGA_EMAIL && process.env.MEGA_PASSWORD);
+    return !!(MEGA_EMAIL && MEGA_PASSWORD);
 }
 
 function withTimeout(promise, ms, label) {
@@ -24,8 +28,8 @@ async function getStorage() {
     if (!storagePromise) {
         const { Storage } = require('megajs');
         storagePromise = new Storage({
-            email: process.env.MEGA_EMAIL,
-            password: process.env.MEGA_PASSWORD,
+            email: MEGA_EMAIL,
+            password: MEGA_PASSWORD,
             userAgent: 'KERM-MD-V1-Session'
         }).ready.then((s) => {
             storage = s;
