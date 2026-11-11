@@ -113,11 +113,11 @@ function releaseSlot() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Limite par IP : 6 démarrages / 10 minutes                           */
+/* Limite par IP : 20 démarrages / 10 minutes                           */
 /* ------------------------------------------------------------------ */
 const hits = new Map();
 const RATE_WINDOW = 10 * 60 * 1000;
-const RATE_MAX = 6;
+const RATE_MAX = 20;
 
 function rateLimited(ip) {
     const now = Date.now();
