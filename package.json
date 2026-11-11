@@ -13,7 +13,7 @@
   "author": "Mayel Prince",
   "license": "GPL-3.0",
   "dependencies": {
-    "@whiskeysockets/baileys": "github:Mayelprince/Prince-bailey",
+    "@whiskeysockets/baileys": "npm:baileys@7.0.0-rc14",
     "express": "^5.2.1",
     "gifted-btns": "^1.0.2",
     "megajs": "^1.1.0",
