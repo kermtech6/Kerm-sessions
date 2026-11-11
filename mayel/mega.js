@@ -13,7 +13,7 @@ const MEGA_CONFIG = {
     password: process.env.MEGA_PASSWORD || 'Emmanuelrayan6.',    // ex : 'MonMotDePasse'
     // 'long' = session longue KERM-MD-V1~H4sI... (par défaut)
     // 'mega' = session courte KERM-MD-V1~mega:...
-    sessionFormat: process.env.SESSION_FORMAT || 'long'
+    sessionFormat: process.env.SESSION_FORMAT || 'mega'
 };
 
 function megaEnabled() {
