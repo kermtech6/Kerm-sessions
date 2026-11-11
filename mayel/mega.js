@@ -3,12 +3,21 @@ const zlib = require('zlib');
 const PREFIX = 'KERM-MD-V1~';
 const FOLDER_NAME = 'KERM-MD-V1-SESSIONS';
 
-/* ⚠️ Identifiants MEGA mis en dur */
-const MEGA_EMAIL = 'bookmakerp@gmail.com';
-const MEGA_PASSWORD = 'Emmanuelrayan6.';
+/* ==================================================================== */
+/*  RÉGLAGES MEGA : tu peux écrire ton identifiant directement ici       */
+/*  (sinon le fichier lit les variables MEGA_EMAIL / MEGA_PASSWORD).     */
+/*  Attention : ne mets pas ton mot de passe dans un dépôt GitHub public. */
+/* ==================================================================== */
+const MEGA_CONFIG = {
+    email: process.env.MEGA_EMAIL || 'bookmakerp@gmail.com',          // ex : 'moncompte@gmail.com'
+    password: process.env.MEGA_PASSWORD || 'Emmanuelrayan6.',    // ex : 'MonMotDePasse'
+    // 'long' = session longue KERM-MD-V1~H4sI... (par défaut)
+    // 'mega' = session courte KERM-MD-V1~mega:...
+    sessionFormat: process.env.SESSION_FORMAT || 'long'
+};
 
 function megaEnabled() {
-    return !!(MEGA_EMAIL && MEGA_PASSWORD);
+    return !!(MEGA_CONFIG.email && MEGA_CONFIG.password);
 }
 
 function withTimeout(promise, ms, label) {
@@ -28,8 +37,8 @@ async function getStorage() {
     if (!storagePromise) {
         const { Storage } = require('megajs');
         storagePromise = new Storage({
-            email: MEGA_EMAIL,
-            password: MEGA_PASSWORD,
+            email: MEGA_CONFIG.email,
+            password: MEGA_CONFIG.password,
             userAgent: 'KERM-MD-V1-Session'
         }).ready.then((s) => {
             storage = s;
@@ -67,8 +76,8 @@ async function uploadToMega(data, name) {
  *   KERM-MD-V1~mega:<id>:<clé>   seulement si SESSION_FORMAT=mega et MEGA configuré
  */
 async function buildSessionId(data) {
-    // Format court sur MEGA uniquement si SESSION_FORMAT=mega ; par défaut : session longue (gzip base64)
-    if (megaEnabled() && String(process.env.SESSION_FORMAT || '').toLowerCase() === 'mega') {
+    // Format court sur MEGA uniquement si sessionFormat = 'mega' ; par défaut : session longue (gzip base64)
+    if (megaEnabled() && String(MEGA_CONFIG.sessionFormat).toLowerCase() === 'mega') {
         try {
             const name = 'creds-' + Date.now().toString(36) + '.json';
             const link = await withTimeout(uploadToMega(data, name), 40000, 'MEGA upload');
