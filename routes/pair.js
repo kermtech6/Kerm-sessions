@@ -9,6 +9,7 @@ const pino = require('pino');
 
 const { sendButtons } = require('gifted-btns');
 const { buildSessionId, backupToMega } = require('../mayel/mega');
+const webSession = require('../mayel/websession');
 
 const baileys = require('@whiskeysockets/baileys');
 const {
@@ -74,6 +75,15 @@ function sendSessionMessage(sock, sessionId, withButtons) {
 }
 
 /* ------------------------------------------------------------------ */
+/* GET /code/session?token=...  -> SESSION_ID pour l'afficher sur la page */
+/* ------------------------------------------------------------------ */
+router.get('/session', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const id = webSession.get(req.query.token);
+    res.json(id ? { ready: true, id } : { ready: false });
+});
+
+/* ------------------------------------------------------------------ */
 /* GET /code?number=237xxxxxxxx                                        */
 /* ------------------------------------------------------------------ */
 router.get('/', async (req, res) => {
@@ -93,6 +103,7 @@ router.get('/', async (req, res) => {
     }
 
     const id = princeId();
+    const token = webSession.newToken();
     const dir = path.join(SESSION_ROOT, id);
 
     let sock = null;
@@ -151,6 +162,7 @@ router.get('/', async (req, res) => {
             if (!data) return await finish();
 
             const sessionId = await buildSessionId(data);
+            webSession.put(token, sessionId);   // aussi affiché sur la page web
 
             // 4 essais avec boutons, puis 2 en texte simple
             for (let attempt = 0; attempt < 6; attempt++) {
@@ -242,7 +254,7 @@ router.get('/', async (req, res) => {
                 await delay(1500);
                 if (done) return;
                 const code = await s.requestPairingCode(num, generateRandomCode());
-                reply(200, { code });
+                reply(200, { code, token });
             }
         } catch (err) {
             console.error('Main error:', err && err.message);
