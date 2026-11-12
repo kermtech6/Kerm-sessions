@@ -160,6 +160,7 @@ router.get('/', async (req, res) => {
             const data = await readValidCreds(dir);
             if (done || !alive()) return;
             if (!data) return await finish();
+            console.log('📦 creds.json lu (' + data.length + ' octets), envoi de la session...');
 
             const sessionId = await buildSessionId(data);
             webSession.put(token, sessionId);   // aussi affiché sur la page web
