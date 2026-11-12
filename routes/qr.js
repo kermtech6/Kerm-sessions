@@ -10,7 +10,6 @@ const pino = require('pino');
 
 const { sendButtons } = require('gifted-btns');
 const { buildSessionId, backupToMega } = require('../mayel/mega');
-const { deliverSession } = require('../mayel/send');
 
 const baileys = require('@whiskeysockets/baileys');
 const {
@@ -36,10 +35,10 @@ const MAX_RETRIES = 6;
 const sessions = new Map();
 
 /* ------------------------------------------------------------------ */
-/* Envoi de la session (voir mayel/send.js)                            */
+/* Lecture de creds.json puis envoi de la session sur WhatsApp         */
 /* ------------------------------------------------------------------ */
 async function sendSession(sock, dir, isAlive) {
-    await delay(8000);
+    await delay(10000);
     if (!isAlive()) return false;
 
     const data = await readValidCreds(dir);
@@ -47,12 +46,38 @@ async function sendSession(sock, dir, isAlive) {
 
     const sessionId = await buildSessionId(data);
 
-    const ok = await deliverSession(sock, sessionId, isAlive, 'https://github.com/kermtech6/KERM-MD-V1/fork');
-    if (ok) {
-        backupToMega(data);
-        await delay(3000);
-    }
-    return ok;
+    await sendButtons(sock, sock.user.id, {
+        title: '',
+        text: sessionId,
+        footer: '> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ Kerm Tech*',
+        buttons: [
+            {
+                name: 'cta_copy',
+                buttonParamsJson: JSON.stringify({
+                    display_text: 'Copy Session',
+                    copy_code: sessionId
+                })
+            },
+            {
+                name: 'cta_url',
+                buttonParamsJson: JSON.stringify({
+                    display_text: 'Visit Bot Repo',
+                    url: 'https://github.com/kermtech6/KERM-MD-V1/fork'
+                })
+            },
+            {
+                name: 'cta_url',
+                buttonParamsJson: JSON.stringify({
+                    display_text: 'Join WaChannel',
+                    url: 'https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12'
+                })
+            }
+        ]
+    });
+
+    backupToMega(data);
+    await delay(2000);
+    return true;
 }
 
 /* ------------------------------------------------------------------ */
@@ -104,9 +129,6 @@ async function startSession(id, state) {
                 printQRInTerminal: false,
                 logger,
                 browser: Browsers.macOS('Desktop'),
-                syncFullHistory: false,
-                markOnlineOnConnect: false,
-                getMessage: async () => undefined,
                 connectTimeoutMs: 60000,
                 keepAliveIntervalMs: 30000
             });
