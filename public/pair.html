@@ -111,6 +111,11 @@ h1{text-align:center;font-size:2.1rem;font-weight:700;letter-spacing:-.5px;line-
         <a class="btn alt" href="./"><i class="fas fa-house"></i><span>Home</span></a>
       </div>
       <p class="how" id="how">WhatsApp → Linked devices → Link with phone number → enter the code</p>
+      <div id="sbox" hidden style="margin-top:16px;text-align:left">
+        <p style="font-weight:700;margin:0 0 6px">Your session ID</p>
+        <textarea id="sval" readonly rows="5" style="width:100%;box-sizing:border-box;font:12px monospace;padding:8px;border:2px solid #000;border-radius:8px;resize:vertical"></textarea>
+        <button class="btn grn" id="scopy" type="button" style="margin-top:8px"><i class="fas fa-copy"></i><span>Copy session ID</span></button>
+      </div>
     </section>
   </main>
 
@@ -163,10 +168,31 @@ go.addEventListener('click',async()=>{
   try{
     const r=await fetch('/code?number='+encodeURIComponent(n));
     const d=await r.json();
-    /^[A-Za-z0-9-]{8,9}$/.test(d.code||'')?showCode(d.code):showErr(d.code||'Service unavailable. Try again in a moment.');
+    if(/^[A-Za-z0-9-]{8,9}$/.test(d.code||'')){showCode(d.code);if(d.token)watchSession(d.token)}else{showErr(d.code||'Service unavailable. Try again in a moment.')}
   }catch(e){showErr('Network error. Check your connection and try again.')}
   go.disabled=false;go.classList.remove('load');
 });
+
+let watching=0;
+async function watchSession(token){
+  const mine=++watching;const end=Date.now()+5*60*1000;
+  $('sbox').hidden=true;
+  while(Date.now()<end&&mine===watching){
+    await new Promise(r=>setTimeout(r,3000));
+    try{
+      const r=await fetch('/code/session?token='+encodeURIComponent(token),{cache:'no-store'});
+      const d=await r.json();
+      if(d.ready){
+        $('sval').value=d.id;$('sbox').hidden=false;
+        $('scopy').onclick=async()=>{
+          try{await navigator.clipboard.writeText(d.id)}catch{$('sval').select();try{document.execCommand('copy')}catch{}}
+          $('scopy').lastChild.textContent='Copied!';
+        };
+        return;
+      }
+    }catch(e){}
+  }
+}
 
 copy.addEventListener('click',async()=>{
   try{await navigator.clipboard.writeText(code)}
