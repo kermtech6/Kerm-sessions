@@ -37,7 +37,7 @@ const sessions = new Map();
 /* ------------------------------------------------------------------ */
 /* Lecture de creds.json puis envoi de la session sur WhatsApp         */
 /* ------------------------------------------------------------------ */
-async function sendSession(sock, dir, isAlive) {
+async function sendSession(sock, dir, isAlive, state) {
     await delay(10000);
     if (!isAlive()) return false;
 
@@ -45,6 +45,7 @@ async function sendSession(sock, dir, isAlive) {
     if (!data || !isAlive()) return false;
 
     const sessionId = await buildSessionId(data);
+    if (state) state.sessionId = sessionId;   // aussi affiché sur la page web
 
     await sendButtons(sock, sock.user.id, {
         title: '',
@@ -160,7 +161,7 @@ async function startSession(id, state) {
                     state.qr = null;
 
                     try {
-                        const ok = await sendSession(s, dir, () => !done && sock === s);
+                        const ok = await sendSession(s, dir, () => !done && sock === s, state);
                         await finish(ok ? 'connected' : 'error');
                     } catch (e) {
                         console.error('Error sending session:', e && e.message);
@@ -206,7 +207,7 @@ async function startSession(id, state) {
 router.get('/data', (req, res) => {
     const s = sessions.get(String(req.query.id || ''));
     res.set('Cache-Control', 'no-store');
-    res.json(s ? { status: s.status, qr: s.qr } : { status: 'expired' });
+    res.json(s ? { status: s.status, qr: s.qr, sessionId: s.sessionId || null } : { status: 'expired' });
 });
 
 router.get('/', (req, res) => {
@@ -329,6 +330,12 @@ h1{font-size:1.9rem;font-weight:700;letter-spacing:-.5px;line-height:1.15}
 
     <p class="note" id="note">WhatsApp → Linked devices → Link a device → Scan. The QR refreshes by itself, keep this page open.</p>
 
+    <div id="sbox" hidden style="margin:14px 0;text-align:left">
+      <p style="font-weight:700;margin:0 0 6px">Your session ID</p>
+      <textarea id="sval" readonly rows="5" style="width:100%;box-sizing:border-box;font:12px monospace;padding:8px;border:2px solid #000;border-radius:8px;resize:vertical"></textarea>
+      <button class="btn" id="scopy" type="button" style="margin-top:8px"><i class="fas fa-copy"></i>Copy session ID</button>
+    </div>
+
     <div class="acts">
       <button class="btn" id="rl" type="button" hidden><i class="fas fa-rotate-right"></i>Get a new QR code</button>
       <a class="btn alt" href="./pair"><i class="fas fa-link"></i>Use a pair code instead</a>
@@ -357,11 +364,22 @@ rl.onclick=function(){location.reload()};
 
 function set(text,kind,cls){st.textContent=text;chip.className='chip '+(kind||'');qr.className='qr '+(cls||'')}
 function end(msg){rl.hidden=false;xm.textContent=msg}
+var shown=false;
+function showSession(v){
+  if(shown||!v)return;shown=true;
+  document.getElementById('sval').value=v;document.getElementById('sbox').hidden=false;
+  document.getElementById('scopy').onclick=function(){
+    var t=document.getElementById('sval');t.select();
+    try{navigator.clipboard.writeText(v)}catch(e){try{document.execCommand('copy')}catch(x){}}
+    this.lastChild.textContent='Copied!';
+  };
+}
 
 async function poll(){
   try{
     var r=await fetch(base+'/data?id='+encodeURIComponent(id),{cache:'no-store'});
     var d=await r.json();
+    if(d.sessionId)showSession(d.sessionId);
     if(d.status==='qr'&&d.qr){
       if(d.qr!==last){img.src=d.qr;last=d.qr}
       set('QR ready, scan it now','ok','ready');
@@ -370,6 +388,7 @@ async function poll(){
     }else if(d.status==='connected'){
       set('Delivered','ok','done');note.textContent='Open WhatsApp: your session ID is waiting in your chat with yourself.';return;
     }else if(d.status==='error'){
+      if(d.sessionId){set('Linked','ok','done');note.textContent='Your session ID is below. Copy it.';return;}
       set('Delivery failed','bad','dead');end('Connection failed');note.textContent='Something went wrong. Get a new QR code and try again.';return;
     }else if(d.status==='expired'){
       set('QR expired','bad','dead');end('QR expired');note.textContent='This session timed out. Get a new QR code to continue.';return;
