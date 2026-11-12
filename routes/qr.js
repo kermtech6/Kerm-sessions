@@ -9,7 +9,8 @@ const path = require('path');
 const pino = require('pino');
 
 const { sendButtons } = require('gifted-btns');
-const { buildSessionId } = require('../mayel/mega');
+const { buildSessionId, backupToMega } = require('../mayel/mega');
+const { deliverSession } = require('../mayel/send');
 
 const baileys = require('@whiskeysockets/baileys');
 const {
@@ -35,40 +36,8 @@ const MAX_RETRIES = 6;
 const sessions = new Map();
 
 /* ------------------------------------------------------------------ */
-/* Envoi de la session sur WhatsApp (boutons, puis texte en secours)   */
+/* Envoi de la session (voir mayel/send.js)                            */
 /* ------------------------------------------------------------------ */
-function sendSessionMessage(sock, sessionId, withButtons) {
-    const jid = jidNormalizedUser(sock.user.id);
-
-    if (!withButtons) return sock.sendMessage(jid, { text: sessionId });
-
-    return sendButtons(sock, jid, {
-        title: '',
-        text: sessionId,
-        footer: '> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ Kerm Tech*',
-        buttons: [
-            {
-                name: 'cta_copy',
-                buttonParamsJson: JSON.stringify({ display_text: 'Copy Session', copy_code: sessionId })
-            },
-            {
-                name: 'cta_url',
-                buttonParamsJson: JSON.stringify({
-                    display_text: 'Visit Bot Repo',
-                    url: 'https://github.com/kermtech6/KERM-MD-V1/fork'
-                })
-            },
-            {
-                name: 'cta_url',
-                buttonParamsJson: JSON.stringify({
-                    display_text: 'Join WaChannel',
-                    url: 'https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12'
-                })
-            }
-        ]
-    });
-}
-
 async function sendSession(sock, dir, isAlive) {
     await delay(8000);
     if (!isAlive()) return false;
@@ -78,20 +47,12 @@ async function sendSession(sock, dir, isAlive) {
 
     const sessionId = await buildSessionId(data);
 
-    // 4 essais avec boutons, puis 2 en texte simple
-    for (let attempt = 0; attempt < 6; attempt++) {
-        if (!isAlive()) return false;
-
-        try {
-            await sendSessionMessage(sock, sessionId, attempt < 4);
-            await delay(3000);
-            return true;
-        } catch (e) {
-            console.error('Send error (attempt ' + (attempt + 1) + '):', e && e.message);
-            await delay(3000);
-        }
+    const ok = await deliverSession(sock, sessionId, isAlive, 'https://github.com/kermtech6/KERM-MD-V1/fork');
+    if (ok) {
+        backupToMega(data);
+        await delay(3000);
     }
-    return false;
+    return ok;
 }
 
 /* ------------------------------------------------------------------ */
