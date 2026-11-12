@@ -9,7 +9,6 @@ const pino = require('pino');
 
 const { sendButtons } = require('gifted-btns');
 const { buildSessionId, backupToMega } = require('../mayel/mega');
-const { deliverSession } = require('../mayel/send');
 
 const baileys = require('@whiskeysockets/baileys');
 const {
@@ -31,8 +30,48 @@ const router = express.Router();
 const RESPONSE_TIMEOUT = 25 * 1000;
 const PAIR_TTL = 4 * 60 * 1000;       // temps pour saisir le code dans WhatsApp
 const DELIVERY_TTL = 3 * 60 * 1000;   // temps max pour livrer la session après connexion
-const SETTLE_DELAY = 8 * 1000;        // pause après connexion pour que les creds soient complètes
+const SETTLE_DELAY = 10 * 1000;        // pause après connexion pour que les creds soient complètes
 const MAX_RECONNECTS = 8;
+
+/* ------------------------------------------------------------------ */
+/* Envoi du message de session (boutons, ou texte simple en secours)   */
+/* ------------------------------------------------------------------ */
+function sendSessionMessage(sock, sessionId, withButtons) {
+    const jid = jidNormalizedUser(sock.user.id);
+
+    if (!withButtons) {
+        return sock.sendMessage(jid, { text: sessionId });
+    }
+
+    return sendButtons(sock, jid, {
+        title: '',
+        text: sessionId,
+        footer: '> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ Kerm Tech*',
+        buttons: [
+            {
+                name: 'cta_copy',
+                buttonParamsJson: JSON.stringify({
+                    display_text: 'Copy Session',
+                    copy_code: sessionId
+                })
+            },
+            {
+                name: 'cta_url',
+                buttonParamsJson: JSON.stringify({
+                    display_text: 'Visit Bot Repo',
+                    url: 'https://github.com/kermtech6/KERM-MD-V1'
+                })
+            },
+            {
+                name: 'cta_url',
+                buttonParamsJson: JSON.stringify({
+                    display_text: 'Join WaChannel',
+                    url: 'https://whatsapp.com/channel/0029VbCgEqc0bIdmRMLots12'
+                })
+            }
+        ]
+    });
+}
 
 /* ------------------------------------------------------------------ */
 /* GET /code?number=237xxxxxxxx                                        */
@@ -113,15 +152,22 @@ router.get('/', async (req, res) => {
 
             const sessionId = await buildSessionId(data);
 
-            const ok = await deliverSession(s, sessionId, () => !done && alive(), 'https://github.com/kermtech6/KERM-MD-V1');
-            if (ok) {
-                backupToMega(data);
-                await delay(3000);
-                return await finish();
+            // 4 essais avec boutons, puis 2 en texte simple
+            for (let attempt = 0; attempt < 6; attempt++) {
+                if (done || !alive()) return;
+
+                try {
+                    await sendSessionMessage(s, sessionId, attempt < 4);
+                    backupToMega(data);
+                    await delay(3000);
+                    return await finish();
+                } catch (e) {
+                    console.error('Send error (attempt ' + (attempt + 1) + '):', e);
+                    await delay(3000);
+                }
             }
-            // connexion coupée pendant l'envoi : on laisse la reconnexion reprendre la livraison
-            if (!done && alive()) await finish();
-            return;
+
+            if (alive()) await finish();
         } catch (e) {
             console.error('Session processing error:', e);
         } finally {
@@ -147,10 +193,10 @@ router.get('/', async (req, res) => {
                 logger,
                 browser: Browsers.macOS('Safari'),
                 syncFullHistory: false,
-                generateHighQualityLinkPreview: false,
+                generateHighQualityLinkPreview: true,
                 shouldIgnoreJid: (jid) => !!jid && jid.endsWith('@g.us'),
                 getMessage: async () => undefined,
-                markOnlineOnConnect: false,
+                markOnlineOnConnect: true,
                 connectTimeoutMs: 60000,
                 keepAliveIntervalMs: 30000
             });
