@@ -78,22 +78,30 @@ async function getBaileysVersion() {
 /* ------------------------------------------------------------------ */
 async function readValidCreds(dir, tries = 12) {
     const credsPath = path.join(dir, 'creds.json');
+    let fallback = null;   // fichier lisible mais pas « parfait » : comme l'ancien code, on s'en contente à la fin
 
     for (let i = 0; i < tries; i++) {
         try {
             if (fs.existsSync(credsPath)) {
                 const raw = fs.readFileSync(credsPath);
                 if (raw.length > 100) {
-                    const json = JSON.parse(raw.toString('utf8'));
-                    if (json && json.me && json.me.id && json.registered) return raw;
+                    try {
+                        const json = JSON.parse(raw.toString('utf8'));
+                        // le compte lié doit être présent (le champ « registered » n'est pas fiable)
+                        if (json && json.me && json.me.id) return raw;
+                        fallback = raw;
+                    } catch (_) {
+                        // fichier en cours d'écriture : on réessaie
+                    }
                 }
             }
-        } catch (_) {
-            // fichier en cours d'écriture : on réessaie
-        }
+        } catch (_) {}
         await delay(1500);
     }
-    return null;
+
+    if (fallback) console.log('⚠️ creds.json sans me.id : envoi tel quel (comportement d\'origine)');
+    else console.log('⚠️ creds.json introuvable ou illisible après ' + tries + ' essais');
+    return fallback;
 }
 
 /* ------------------------------------------------------------------ */
