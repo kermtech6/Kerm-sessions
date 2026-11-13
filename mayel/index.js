@@ -3,7 +3,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 
-/* ------------------------------------------------------------------ */
+/* ----------------------------------------------------------------- */
 /* Dossier temporaire des sessions (hors du dépôt, nettoyé au boot)    */
 /* ------------------------------------------------------------------ */
 const SESSION_ROOT = path.join(os.tmpdir(), 'kerm-sessions');
