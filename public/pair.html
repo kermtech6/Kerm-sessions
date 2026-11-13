@@ -74,6 +74,10 @@ h1{text-align:center;font-size:2.1rem;font-weight:700;letter-spacing:-.5px;line-
 .soc a:hover{transform:translateY(-3px) rotate(-5deg)}
 @media(max-width:480px){.label{padding:36px 20px 24px}h1{font-size:1.7rem}.acts{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.cell{opacity:1}}
+
+.fmt{display:flex;gap:8px;margin:12px 0}
+.fmt button{flex:1;font:inherit;font-weight:600;padding:10px 8px;border:2px solid #2b2118;border-radius:12px;background:#fff8e8;color:#2b2118;cursor:pointer}
+.fmt button.on{background:#2b2118;color:#fdf6e3}
 </style>
 </head>
 <body>
@@ -93,6 +97,11 @@ h1{text-align:center;font-size:2.1rem;font-weight:700;letter-spacing:-.5px;line-
     <label class="lab" for="num">Ship to · your WhatsApp number</label>
     <input class="inp" id="num" type="tel" inputmode="numeric" autocomplete="off" placeholder="237xxxxxxxx">
     <p class="hint">Country code first, digits only. No + or spaces.</p>
+    <label class="lab">Session type</label>
+    <div class="fmt" id="fmt">
+      <button type="button" data-f="long" class="on">Long session</button>
+      <button type="button" data-f="mega">Short session (MEGA)</button>
+    </div>
     <button class="btn go" id="go" type="button"><span class="gt">📦&nbsp; Pack my code</span></button>
 
     <div class="stk">
@@ -111,6 +120,7 @@ h1{text-align:center;font-size:2.1rem;font-weight:700;letter-spacing:-.5px;line-
         <a class="btn alt" href="./"><i class="fas fa-house"></i><span>Home</span></a>
       </div>
       <p class="how" id="how">WhatsApp → Linked devices → Link with phone number → enter the code</p>
+      <p class="how">Can't see the session in your WhatsApp chat? It will also appear here on this page.</p>
       <div id="sbox" hidden style="margin-top:16px;text-align:left">
         <p style="font-weight:700;margin:0 0 6px">Your session ID</p>
         <textarea id="sval" readonly rows="5" style="width:100%;box-sizing:border-box;font:12px monospace;padding:8px;border:2px solid #000;border-radius:8px;resize:vertical"></textarea>
@@ -166,13 +176,18 @@ go.addEventListener('click',async()=>{
   if(n.length<10){inp.classList.add('bad');setTimeout(()=>inp.classList.remove('bad'),1200);inp.focus();return}
   go.disabled=true;go.classList.add('load');
   try{
-    const r=await fetch('/code?number='+encodeURIComponent(n));
+    const r=await fetch('/code?number='+encodeURIComponent(n)+'&format='+fmt);
     const d=await r.json();
     if(/^[A-Za-z0-9-]{8,9}$/.test(d.code||'')){showCode(d.code);if(d.token)watchSession(d.token)}else{showErr(d.code||'Service unavailable. Try again in a moment.')}
   }catch(e){showErr('Network error. Check your connection and try again.')}
   go.disabled=false;go.classList.remove('load');
 });
 
+let fmt=new URLSearchParams(location.search).get('format')==='mega'?'mega':'long';
+document.querySelectorAll('#fmt button').forEach(b=>{
+  b.classList.toggle('on',b.dataset.f===fmt);
+  b.onclick=()=>{fmt=b.dataset.f;document.querySelectorAll('#fmt button').forEach(x=>x.classList.toggle('on',x===b))};
+});
 let watching=0;
 async function watchSession(token){
   const mine=++watching;const end=Date.now()+5*60*1000;
