@@ -59,7 +59,11 @@ async function getBaileysVersion() {
     if (versionCache && Date.now() - versionAt < VERSION_TTL) return versionCache;
 
     try {
-        const { version } = await fetchLatestBaileysVersion();
+        // 8 s maximum : si le réseau bloque, on ne reste pas coincé sur « Packing your QR code... »
+        const { version } = await Promise.race([
+            fetchLatestBaileysVersion(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('version fetch timed out')), 8000))
+        ]);
         if (Array.isArray(version) && version.length === 3) {
             versionCache = version;
             versionAt = Date.now();
