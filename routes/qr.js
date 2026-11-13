@@ -14,6 +14,7 @@ const { buildSessionId, backupToMega } = require('../mayel/mega');
 const baileys = require('@whiskeysockets/baileys');
 const {
     default: princeConnect,
+    fetchLatestBaileysVersion,
     useMultiFileAuthState,
     jidNormalizedUser,
     Browsers
@@ -132,27 +133,26 @@ async function startSession(id, state, format) {
         if (done) return;
 
         try {
+            // Même séquence que l'ancien code (celui qui affichait bien le QR) :
+            // version WhatsApp récupérée à chaque connexion, état d'auth passé tel quel.
+            const { version } = await fetchLatestBaileysVersion();
             const { state: auth, saveCreds } = await useMultiFileAuthState(dir);
-            const logger = pino({ level: 'silent' });
-            const version = await getBaileysVersion();
 
             const s = princeConnect({
-                ...(version ? { version } : {}),
-                auth: {
-                    creds: auth.creds,
-                    keys: wrapKeys(auth.keys, logger)
-                },
+                version,
+                auth,
                 printQRInTerminal: false,
-                logger,
+                logger: pino({ level: 'silent' }),
                 browser: Browsers.macOS('Desktop'),
                 connectTimeoutMs: 60000,
                 keepAliveIntervalMs: 30000
             });
 
             sock = s;
+            console.log('[qr ' + id + '] connexion WhatsApp démarrée, version', Array.isArray(version) ? version.join('.') : version);
 
             s.ev.on('creds.update', async () => {
-                if (done || sock !== s) return;
+                if (done) return;   // dossier déjà supprimé : on n'écrit plus
                 try { await saveCreds(); } catch (e) { console.error('saveCreds error:', e && e.message); }
             });
 
@@ -163,6 +163,7 @@ async function startSession(id, state, format) {
                     try {
                         state.qr = await QRCode.toDataURL(qr, { margin: 1, width: 320 });
                         state.status = 'qr';
+                        console.log('[qr ' + id + '] QR généré');
                     } catch (e) {
                         console.error('QR error:', e && e.message);
                     }
@@ -189,6 +190,8 @@ async function startSession(id, state, format) {
                     const code = lastDisconnect && lastDisconnect.error &&
                         lastDisconnect.error.output &&
                         lastDisconnect.error.output.statusCode;
+
+                    console.log('[qr ' + id + '] connexion fermée, code', code);
 
                     // 401 déconnecté, 403 interdit, 440 session remplacée : inutile de réessayer
                     if (code === 401 || code === 403 || code === 440 || ++retries > MAX_RETRIES) {
