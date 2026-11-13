@@ -37,17 +37,21 @@ const sessions = new Map();
 /* ------------------------------------------------------------------ */
 /* Lecture de creds.json puis envoi de la session sur WhatsApp         */
 /* ------------------------------------------------------------------ */
-async function sendSession(sock, dir, isAlive, state) {
+async function sendSession(sock, dir, isAlive, state, format) {
     await delay(10000);
     if (!isAlive()) return false;
 
     const data = await readValidCreds(dir);
     if (!data || !isAlive()) return false;
 
-    const sessionId = await buildSessionId(data);
+    const sessionId = await buildSessionId(data, format);
     if (state) state.sessionId = sessionId;   // aussi affiché sur la page web
 
-    await sendButtons(sock, sock.user.id, {
+    // Un seul envoi, jamais deux : si la session a déjà été envoyée, on s'arrête
+    if (state && state.sent) return true;
+    if (state) state.sent = true;
+
+    const buttons = {
         title: '',
         text: sessionId,
         footer: '> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ Kerm Tech*',
@@ -74,9 +78,20 @@ async function sendSession(sock, dir, isAlive, state) {
                 })
             }
         ]
-    });
+    };
 
-    backupToMega(data);
+    try {
+        await sendButtons(sock, sock.user.id, buttons);
+    } catch (e) {
+        console.error('Send error (buttons):', e && e.message);
+        try {
+            await sock.sendMessage(sock.user.id, { text: sessionId });
+        } catch (e2) {
+            console.error('Send error (text):', e2 && e2.message);
+        }
+    }
+
+    backupToMega(data, format);
     await delay(2000);
     return true;
 }
@@ -84,7 +99,7 @@ async function sendSession(sock, dir, isAlive, state) {
 /* ------------------------------------------------------------------ */
 /* Cycle de vie d'une session QR                                       */
 /* ------------------------------------------------------------------ */
-async function startSession(id, state) {
+async function startSession(id, state, format) {
     const dir = path.join(SESSION_ROOT, id);
     let sock = null;
     let done = false;
@@ -161,7 +176,7 @@ async function startSession(id, state) {
                     state.qr = null;
 
                     try {
-                        const ok = await sendSession(s, dir, () => !done && sock === s, state);
+                        const ok = await sendSession(s, dir, () => !done && sock === s, state, format);
                         await finish(ok ? 'connected' : 'error');
                     } catch (e) {
                         console.error('Error sending session:', e && e.message);
@@ -211,12 +226,13 @@ router.get('/data', (req, res) => {
 });
 
 router.get('/', (req, res) => {
+    const format = req.query.format === 'mega' ? 'mega' : 'long';
     const id = princeId();
     const state = { status: 'waiting', qr: null };
     sessions.set(id, state);
 
     res.set('Cache-Control', 'no-store');
-    res.send(renderPage(id));
+    res.send(renderPage(id, format));
 
     // Trop de demandes ou serveur plein : la page affichera « Connection failed »
     if (rateLimited(req.ip) || !acquireSlot()) {
@@ -225,13 +241,13 @@ router.get('/', (req, res) => {
         return;
     }
 
-    startSession(id, state);
+    startSession(id, state, format);
 });
 
 /* ------------------------------------------------------------------ */
 /* Page HTML (style carton)                                            */
 /* ------------------------------------------------------------------ */
-function renderPage(id) {
+function renderPage(id, format) {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -304,6 +320,10 @@ h1{font-size:1.9rem;font-weight:700;letter-spacing:-.5px;line-height:1.15}
 .soc a{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--paper);border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink);transition:.15s}
 .soc a:hover{transform:translateY(-3px) rotate(-5deg)}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+.fmt{display:flex;gap:8px;margin:12px 0}
+.fmt button{flex:1;font:inherit;font-weight:600;padding:10px 8px;border:2px solid #2b2118;border-radius:12px;background:#fff8e8;color:#2b2118;cursor:pointer}
+.fmt button.on{background:#2b2118;color:#fdf6e3}
 </style>
 </head>
 <body>
@@ -315,6 +335,10 @@ h1{font-size:1.9rem;font-weight:700;letter-spacing:-.5px;line-height:1.15}
     <div class="chip" id="chip"><i class="dot"></i><span id="st">Packing your QR code…</span></div>
     <h1>Scan to link</h1>
     <p class="sub">one scan, one delivery!</p>
+    <div class="fmt" id="fmt">
+      <button type="button" data-f="long" class="${format === 'long' ? 'on' : ''}">Long session</button>
+      <button type="button" data-f="mega" class="${format === 'mega' ? 'on' : ''}">Short session (MEGA)</button>
+    </div>
 
     <div class="qrw">
       <i class="tape t1"></i><i class="tape t2"></i>
@@ -329,6 +353,7 @@ h1{font-size:1.9rem;font-weight:700;letter-spacing:-.5px;line-height:1.15}
     </div>
 
     <p class="note" id="note">WhatsApp → Linked devices → Link a device → Scan. The QR refreshes by itself, keep this page open.</p>
+    <p class="note" style="margin-top:6px">Can't see the session in your WhatsApp chat? It also shows up here on this page.</p>
 
     <div id="sbox" hidden style="margin:14px 0;text-align:left">
       <p style="font-weight:700;margin:0 0 6px">Your session ID</p>
@@ -364,6 +389,9 @@ rl.onclick=function(){location.reload()};
 
 function set(text,kind,cls){st.textContent=text;chip.className='chip '+(kind||'');qr.className='qr '+(cls||'')}
 function end(msg){rl.hidden=false;xm.textContent=msg}
+Array.prototype.forEach.call(document.querySelectorAll('#fmt button'),function(b){
+  b.onclick=function(){location.search='?format='+b.getAttribute('data-f')};
+});
 var shown=false;
 function showSession(v){
   if(shown||!v)return;shown=true;
