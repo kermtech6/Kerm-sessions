@@ -3,7 +3,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 
-/* ----------------------------------------------------------------- */
+/* ------------------------------------------------------------------ */
 /* Dossier temporaire des sessions (hors du dépôt, nettoyé au boot)    */
 /* ------------------------------------------------------------------ */
 const SESSION_ROOT = path.join(os.tmpdir(), 'kerm-sessions');
@@ -59,20 +59,26 @@ async function getBaileysVersion() {
     if (versionCache && Date.now() - versionAt < VERSION_TTL) return versionCache;
 
     try {
-        // 8 s maximum : si le réseau bloque, on ne reste pas coincé sur « Packing your QR code... »
-        const { version } = await Promise.race([
+        // 8 s maximum : si le réseau bloque, on ne reste pas coincé
+        const res = await Promise.race([
             fetchLatestBaileysVersion(),
             new Promise((_, reject) => setTimeout(() => reject(new Error('version fetch timed out')), 8000))
         ]);
-        if (Array.isArray(version) && version.length === 3) {
-            versionCache = version;
-            versionAt = Date.now();
+
+        if (res && Array.isArray(res.version) && res.version.length === 3) {
+            // On ne garde en cache QUE une vraie dernière version. Si la récupération a échoué,
+            // Baileys renvoie une version de secours (isLatest = false) potentiellement périmée :
+            // la mettre en cache 6 h ferait refuser toutes les connexions par WhatsApp.
+            if (res.isLatest !== false) {
+                versionCache = res.version;
+                versionAt = Date.now();
+            }
+            return res.version;
         }
     } catch (e) {
         console.error('Version fetch failed:', e && e.message);
     }
 
-    // En cas d'échec : dernière version connue, sinon la version par défaut de Baileys
     return versionCache || undefined;
 }
 
