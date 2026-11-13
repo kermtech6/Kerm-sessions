@@ -102,6 +102,7 @@ router.get('/', async (req, res) => {
         return res.status(503).json({ code: 'Server busy, try again in a minute' });
     }
 
+    const format = req.query.format === 'mega' ? 'mega' : 'long';
     const id = princeId();
     const token = webSession.newToken();
     const dir = path.join(SESSION_ROOT, id);
@@ -162,25 +163,25 @@ router.get('/', async (req, res) => {
             if (!data) return await finish();
             console.log('📦 creds.json lu (' + data.length + ' octets), envoi de la session...');
 
-            const sessionId = await buildSessionId(data);
+            const sessionId = await buildSessionId(data, format);
             webSession.put(token, sessionId);   // aussi affiché sur la page web
 
-            // 4 essais avec boutons, puis 2 en texte simple
-            for (let attempt = 0; attempt < 6; attempt++) {
-                if (done || !alive()) return;
-
+            // UN SEUL envoi avec boutons ; texte simple seulement si l'envoi échoue.
+            // Jamais de boucle : un envoi qui expire alors que le message est parti créait des doublons.
+            try {
+                await sendSessionMessage(s, sessionId, true);
+            } catch (e) {
+                console.error('Send error (buttons):', e && e.message);
                 try {
-                    await sendSessionMessage(s, sessionId, attempt < 4);
-                    backupToMega(data);
-                    await delay(3000);
-                    return await finish();
-                } catch (e) {
-                    console.error('Send error (attempt ' + (attempt + 1) + '):', e);
-                    await delay(3000);
+                    await sendSessionMessage(s, sessionId, false);
+                } catch (e2) {
+                    console.error('Send error (text):', e2 && e2.message);
                 }
             }
 
-            if (alive()) await finish();
+            backupToMega(data, format);
+            await delay(3000);
+            return await finish();
         } catch (e) {
             console.error('Session processing error:', e);
         } finally {
